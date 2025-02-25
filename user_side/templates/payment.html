@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Complete Your Payment</ h1>
+    <button id="pay-button">Pay Now</button>
+
+    <script>
+        document.getElementById('pay-button').onclick = function() {
+            var options = {
+                "key": "{{ razorpay_key }}", // Enter the Key ID generated from the Dashboard
+                "amount": "{{ amount }}", // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise or 500 INR
+                "currency": "{{ currency }}",
+                "name": "{{ name }}",
+                "description": "{{ description }}",
+                "order_id": "{{ razorpay_order_id }}", // This is the order_id obtained from the create order API
+                "handler": function (response){
+                    // Send payment details to your server for verification
+                    fetch('/payment-confirmation/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token for security
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('Payment successful! Order ID: ' + data.order_id);
+                            // Redirect to a success page or update the UI
+                        } else {
+                            alert('Payment failed: ' + data.message);
+                        }
+                    });
+                },
+                "theme": {
+                    "color": "#F37254"
+                }
+            };
+            var rzp1 = new Razorpay(options);
+            rzp1.open();
+        };
+    </script>
+</body>
+</html>

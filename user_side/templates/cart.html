@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Cart - Fresh2Home{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cart.css' %}">
+{% endblock %}
+{% block content %}
+<div class="main-content">
+    <section class="cart-section">
+        <div class="container">
+            <h1 class="section-title">Your Shopping Cart</h1>
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% if cart_items %}
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="cart-items">
+                        {% for item in cart_items %}
+                        <div class="cart-item" id="cart-item-{{ item.id }}">
+                            <div class="item-image">
+                                {% if item.product.images.first %}
+                                <img src="{{ item.product.images.first.image_url.url }}" alt="{{ item.product.name }}">
+                                {% else %}
+                                <img src="{% static 'images/default-product.jpg' %}" alt="No Image Available">
+                                {% endif %}
+                            </div>
+                            <div class="item-details">
+                                <h3 class="item-name">{{ item.product.name }}</h3>
+                                <p class="item-price">₹<span id="price-{{ item.id }}">
+                                    {% if item.variant %}
+                                        {{ item.variant.price }}
+                                    {% else %}
+                                        {{ item.product.price }}
+                                    {% endif %}
+                                </span></p>
+                                <p class="item-price text-dark" id="subtotal-{{ item.id }}">
+                                    {% if item.variant %}
+                                        {{ item.variant.price|floatformat:2 }}
+                                    {% else %}
+                                        {{ item.product.price|floatformat:2 }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="item-quantity" id="cart_item_{{ item.id }}">
+                                <button class="quantity-btn decrement-quantity" data-item-id="{{ item.id }}">-</button>
+                                <input type="number" class="quantity-input" id="quantity_{{ item.id }}"
+                                    value="{{ item.quantity }}" min="1" max="{{ item.available_quantity }}" readonly>
+                                <button class="quantity-btn increment-quantity" data-item-id="{{ item.id }}">+</button>
+                            </div>
+                            
+                            <form action="{% url 'remove_cart_item' item.id %}" method="POST" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="remove-item" data-id="{{ item.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="cart-summary">
+                        <h2>Order Summary</h2>
+                        <div class="summary-item">
+                            <span>Subtotal</span>
+                            <span>₹<span id="cart-subtotal">{{ subtotal|floatformat:2 }}</span></span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Shipping</span>
+                            <span>₹<span id="shipping-cost">{{ shipping_cost|floatformat:2 }}</span></span>
+                        </div>
+                        <div class="summary-item total">
+                            <span>Total</span>
+                            <span>₹<span id="cart-total">{{ total|floatformat:2 }}</span></span>
+                        </div>
+                        <a href="{% url 'checkout' %}" class="btn btn-primary checkout-btn">Proceed to Checkout</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <h2>Your cart is empty</h2>
+                <p>Browse our products and add items to your cart.</p>
+                <a href="{% url 'products' %}" class="btn btn-primary">Continue Shopping</a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block script %}
+<!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+<script>
+    console.log("Script is loading...");
+
+    $(document).ready(function () {
+        $(".quantity-btn").click(function () {
+            console.log("Button clicked!");
+        });
+        $(document).on("click", ".quantity-btn", function () {
+            let itemId = $(this).data("item-id");
+            let action = $(this).hasClass("increment-quantity") ? "increment" : "decrement";
+
+            console.log("Button clicked - Item ID:", itemId, "Action:", action); // Debugging
+
+            $.ajax({
+                url: "{% url 'update_cart_quantity' %}",
+                type: "POST",
+                data: {
+                    "item_id": itemId,
+                    "action": action,
+                    "csrfmiddlewaretoken": "{{ csrf_token }}"
+                },
+                success: function (response) {
+                    console.log("AJAX success:", response); // Debugging
+
+                    // Update quantity
+                    $("#quantity_" + itemId).val(response.quantity);
+
+                    // Update item subtotal (use variant price if available)
+                    let itemPrice = response.item_price; // Ensure the backend sends the correct price
+                    $("#subtotal-" + itemId).text("₹" + (itemPrice * response.quantity).toFixed(2));
+
+                    // Update cart subtotal, total, and shipping cost
+                    $("#cart-subtotal").text(response.subtotal.toFixed(2));
+                    $("#cart-total").text(response.total.toFixed(2));
+                    $("#shipping-cost").text(response.shipping_cost.toFixed(2));
+                },
+                error: function (xhr, status, error) {
+                    console.error("AJAX error:", status, error); // Debugging
+                    alert("Error updating quantity.");
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

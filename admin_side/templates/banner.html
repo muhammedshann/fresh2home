@@ -1,0 +1,270 @@
+{% extends 'partials/adminbase.html' %}
+{% load static %}
+{% block title %}Fresh 2 Home - Admin Banner Management{% endblock %}
+
+{% block content %}
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+<div class="container-fluid py-3">
+    <!-- Header Section with Stats -->
+    <div class="row g-2 mb-3">
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col">
+                            <h6 class="text-muted mb-1 fs-xs">Total Banners</h6>
+                            <h3 class="mb-0">{{ data.paginator.count }}</h3>
+                        </div>
+                        <div class="col-auto">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
+                                <i class="bi bi-box text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col">
+                            <h6 class="text-muted mb-1 fs-xs">Banners</h6>
+                            <h3 class="mb-0">{{ banner.count }}</h3>
+                        </div>
+                        <div class="col">
+                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addBannerModal">
+                                <i class="bi bi-plus-circle"></i> Add Banner
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr class="fs-xs text-uppercase">
+                        <th class="fw-500 py-2">Image</th>
+                        <th class="fw-500 py-2">Banner Name</th>
+                        <th class="fw-500 py-2">Code</th>
+                        <th class="fw-500 py-2">Status</th>
+                        <th class="fw-500 py-2 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for banner in data %}
+                    <tr class="align-middle fs-sm">
+                        <td class="py-2">
+                            <div class="d-flex align-items-center">
+                                <div class="me-2" style="width: 40px; height: 40px;">
+                                <img src="{{ banner.image.url }}" 
+                                        class="rounded" 
+                                        style="width: 100px; height: 40px; object-fit: cover; " >
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <div class="fw-500 text-truncate" style="max-width: 200px;">{{ banner.name }}</div>
+                                <div class="text-muted fs-xs">ID: #{{ banner.id }}</div>
+                            </div>
+                        </td>
+                        <td class="py-2">
+                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ banner.code }}</div>
+                        </td>
+                        <td class="py-2">
+                            <label class="form-check-label">
+                                {% if banner.status == 'ACTIVE' %}
+                                    <span class="text-success fw-bold">Active</span>
+                                {% else %}
+                                    <span class="text-danger fw-bold">Inactive</span>
+                                {% endif %}
+                            </label>
+                        </td>
+                        <td class="py-2 text-end">
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#editBannerModal{{ banner.id }}">
+                                Edit
+                            </button>
+                            <form method="POST" action="{% url 'delete_banner' banner.id %}"
+                                style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Are you sure you want to delete this product?');">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% include 'partials/pagination.html' %}
+        </div>
+    </div>
+</div>
+
+ <!-- Add Banner Modal -->
+ <div class="modal fade" id="addBannerModal" tabindex="-1" aria-labelledby="addBannerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addBannerModalLabel">Add Banner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'add_banner' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="bannerName" class="form-label">Banner Name</label>
+                        <input type="text" class="form-control" id="bannerName" name="name"
+                            placeholder="Enter banner name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bannerCode" class="form-label">Banner Code</label>
+                        <input type="text" class="form-control" id="bannerCode" name="code"
+                            placeholder="Enter banner code" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="end_date" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bannerStatus" class="form-label">Status</label>
+                        <select class="form-select" id="bannerStatus" name="status" required>
+                            <option value="ACTIVE">Active</option>
+                            <option value="INACTIVE">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bannerImage" class="form-label">Upload Banner Image</label>
+                        <input type="file" class="form-control" id="bannerImage" name="image" accept="image/*" required>
+                        <small class="form-text text-muted">Upload a single image for the banner.</small>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save Banner</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% for banner in data %}
+<!-- Edit Banner Modal -->
+<div class="modal fade" id="editBannerModal{{ banner.id }}" tabindex="-1" aria-labelledby="editBannerModalLabel{{ banner.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editBannerModalLabel{{ banner.id }}">Edit Banner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'edit_banner' banner.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="banner_id" value="{{ banner.id }}">
+                    
+                    <div class="mb-3">
+                        <label for="editBannerName{{ banner.id }}" class="form-label">Banner Name</label>
+                        <input type="text" class="form-control" id="editBannerName{{ banner.id }}" name="name" 
+                            value="{{ banner.name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editBannerCode{{ banner.id }}" class="form-label">Banner Code</label>
+                        <input type="text" class="form-control" id="editBannerCode{{ banner.id }}" name="code" 
+                            value="{{ banner.code }}" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editStartDate{{ banner.id }}" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="editStartDate{{ banner.id }}" name="start_date" 
+                                value="{{ banner.start_date|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editEndDate{{ banner.id }}" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="editEndDate{{ banner.id }}" name="end_date" 
+                                value="{{ banner.end_date|date:'Y-m-d' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editBannerStatus{{ banner.id }}" class="form-label">Status</label>
+                        <select class="form-select" id="editBannerStatus{{ banner.id }}" name="status" required>
+                            <option value="ACTIVE" {% if banner.status == "ACTIVE" %}selected{% endif %}>Active</option>
+                            <option value="INACTIVE" {% if banner.status == "INACTIVE" %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editBannerImage{{ banner.id }}" class="form-label">Upload New Banner Image</label>
+                        <input type="file" class="form-control" id="editBannerImage{{ banner.id }}" name="image" accept="image/*">
+                        <small class="form-text text-muted">Upload a new image to replace the current one.</small>
+                        <div class="mt-2">
+                            <img src="{{ banner.image.url }}" alt="Current Banner" class="img-thumbnail" width="150">
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Banner</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% block js %}
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+
+        if(sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('show');
+                mainContent.classList.toggle('expanded');
+            });
+        }
+
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                    mainContent.classList.add('expanded');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends 'partials/adminbase.html' %}
+{% load static %}
+{% block title %}Fresh 2 Home - Sales Report{% endblock %}
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #0070f3;
+        --secondary-color: #00c4ff;
+        --dark-color: #111827;
+        --light-color: #f8f9fa;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+    }
+    
+    body {
+        background-color: #f0f2f5;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .sales-report-container {
+        padding: 2rem 1.5rem;
+    }
+    
+    .report-title {
+        font-weight: 700;
+        margin-bottom: 2rem;
+        color: var(--dark-color);
+        font-size: 2rem;
+    }
+    
+    .filter-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: none;
+    }
+    
+    .custom-select, .custom-date {
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        height: 48px;
+        box-shadow: none;
+        transition: all 0.3s;
+    }
+    
+    .custom-select:focus, .custom-date:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
+    }
+    
+    .btn-apply {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border: none;
+        height: 48px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+        box-shadow: 0 4px 14px rgba(0, 112, 243, 0.4);
+    }
+    
+    .btn-apply:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 112, 243, 0.5);
+    }
+    
+    .summary-card {
+        border-radius: 16px;
+        border: none;
+        padding: 1.5rem;
+        height: 100%;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .summary-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    }
+    
+    .summary-card h5 {
+        color: #6b7280;
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 1rem;
+    }
+    
+    .summary-card h2 {
+        color: var(--dark-color);
+        font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: 0;
+    }
+    
+    .btn-download {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-pdf {
+        background-color: var(--primary-color);
+        border: none;
+        color: white;
+    }
+    
+    .btn-excel {
+        background-color: var(--success-color);
+        border: none;
+        color: white;
+    }
+    
+    .btn-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+    
+    .counter {
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    .download-buttons {
+        margin-top: 2rem;
+    }
+</style>
+<!-- Include Inter font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 sales-report-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="text-center report-title">
+                <span style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Sales Report
+                </span>
+            </h1>
+            
+            <!-- Filter Form -->
+            <div class="card filter-card mb-4">
+                <form method="get" id="filterForm">
+                    <div class="row align-items-center">
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <select name="filter" class="form-select custom-select">
+                                <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Time</option>
+                                <option value="daily" {% if filter_type == 'daily' %}selected{% endif %}>Daily</option>
+                                <option value="weekly" {% if filter_type == 'weekly' %}selected{% endif %}>Weekly</option>
+                                <option value="monthly" {% if filter_type == 'monthly' %}selected{% endif %}>Monthly</option>
+                                <option value="yearly" {% if filter_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                                <option value="custom" {% if filter_type == 'custom' %}selected{% endif %}>Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5 mb-3 mb-md-0 custom-dates" {% if filter_type != 'custom' %}style="display:none;"{% endif %}>
+                            <div class="d-flex gap-2">
+                                <input type="date" name="start_date" class="form-control custom-date" value="{{ start_date }}" placeholder="Start Date">
+                                <input type="date" name="end_date" class="form-control custom-date" value="{{ end_date }}" placeholder="End Date">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100 btn-apply">Apply Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Report Summary -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="summary-card text-center">
+                        <h5>Total Orders</h5>
+                        <h2 class="counter" id="total_orders">{{ report.total_orders }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card text-center">
+                        <h5>Total Sales</h5>
+                        <h2 class="counter" id="total_sales">₹{{ report.total_sales|floatformat:2 }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card text-center">
+                        <h5>Total Discount</h5>
+                        <h2 class="counter" id="total_discount">₹{{ report.total_discount|floatformat:2 }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card text-center">
+                        <h5>Coupon Orders</h5>
+                        <h2 class="counter" id="coupon_orders">{{ report.coupon_orders }}</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Buttons -->
+            <div class="text-center download-buttons">
+                <a href="{% url 'sales_report' %}?download=true&format=pdf{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}{% if filter_type == 'custom' %}&start_date={{ start_date }}&end_date={{ end_date }}{% endif %}" class="btn btn-download btn-pdf me-2">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </a>
+                <a href="{% url 'sales_report' %}?download=true&format=excel{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}{% if filter_type == 'custom' %}&start_date={{ start_date }}&end_date={{ end_date }}{% endif %}" class="btn btn-download btn-excel">
+                    <i class="fas fa-file-excel me-1"></i> Download Excel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/2.0.8/countUp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+<script>
+    function fetchSalesReport() {
+        $.ajax({
+            url: "{% url 'sales_report' %}",  // Ensure this matches your Django URL
+            type: "GET",
+            dataType: "json",
+            success: function(data) {
+                $('#total_orders').text(data.total_orders);
+                $('#total_sales').text('₹' + parseFloat(data.total_sales).toFixed(2));
+                $('#total_discount').text('₹' + parseFloat(data.total_discount).toFixed(2));
+                $('#coupon_orders').text(data.coupon_orders);
+            },
+            error: function() {
+                console.error("Error fetching sales report data.");
+            }
+        });
+    }
+    
+    // Auto-refresh the report every 5 seconds
+    setInterval(fetchSalesReport, 5000);    
+</script>
+{% endblock %}
+{% endblock %}

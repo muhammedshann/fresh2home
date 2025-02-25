@@ -1,0 +1,508 @@
+{% extends 'partials/adminbase.html' %}
+{% load static %}
+
+{% block content %}
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+<div class="container-fluid py-3">
+    <!-- Header Section with Stats -->
+    <div class="row g-2 mb-3">
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col">
+                            <h6 class="text-muted mb-1 fs-xs">Total Products</h6>
+                            <h3 class="mb-0">{{ data.paginator.count }}</h3>
+                        </div>
+                        <div class="col-auto">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
+                                <i class="bi bi-box text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col">
+                            <h6 class="text-muted mb-1 fs-xs">Categories</h6>
+                            <h3 class="mb-0">{{ categories.count }}</h3>
+                        </div>
+                        <div class="col-auto">
+                            <div class="bg-success bg-opacity-10 p-2 rounded-circle">
+                                <i class="bi bi-grid text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text border-0 bg-light px-2">
+                            <i class="bi bi-funnel fs-xs"></i>
+                        </span>
+                        <select class="form-select form-select-sm border-0 bg-light filter-select" data-filter="category" style="width: 130px;">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text border-0 bg-light px-2">
+                            <i class="bi bi-arrow-down-up fs-xs"></i>
+                        </span>
+                        <select class="form-select form-select-sm border-0 bg-light filter-select" data-filter="sort" style="width: 150px;">
+                            <option value="">Sort By</option>
+                            <option value="price_low" {% if selected_sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                            <option value="price_high" {% if selected_sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                            <option value="name_asc" {% if selected_sort == 'name_asc' %}selected{% endif %}>Name: A to Z</option>
+                            <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text border-0 bg-light px-2">
+                            <i class="bi bi-circle-half fs-xs"></i>
+                        </span>
+                        <select class="form-select form-select-sm border-0 bg-light filter-select" data-filter="status" style="width: 120px;">
+                            <option value="">All Status</option>
+                            <option value="in_stock" {% if selected_status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                            <option value="out_of_stock" {% if selected_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-auto ms-auto">
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                        <i class="bi bi-plus-circle me-1 fs-xs"></i>Add Product
+                    </button>
+                </div>
+                <div class="col-auto ">
+                    <button class="btn btn-sm btn-light" id="clear-filters">
+                        <i class="bi bi-x-circle me-1 fs-xs"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr class="fs-xs text-uppercase">
+                        <th class="fw-500 py-2">Image</th>
+                        <th class="fw-500 py-2">Product Name</th>
+                        <th class="fw-500 py-2">Category</th>
+                        <th class="fw-500 py-2">Price</th>
+                        <th class="fw-500 py-2">Stock</th>
+                        <th class="fw-500 py-2">Status</th>
+                        <th class="fw-500 py-2 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in data %}
+                    <tr class="align-middle fs-sm">
+                        <td class="py-2">
+                            <div class="d-flex align-items-center">
+                                <div class="me-2" style="width: 40px; height: 40px;">
+                                    {% with product.images.all|first as first_image %}
+                                    {% if first_image and first_image.image_url %}
+                                    <img src="{{ first_image.image_url.url }}" 
+                                         class="rounded" 
+                                         style="width: 40px; height: 40px; object-fit: cover;cursor: pointer;" 
+                                         data-bs-toggle="modal" 
+                                         data-bs-target="#imageModal{{ product.id }}">
+                                    {% else %}
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-image text-muted fs-xs"></i>
+                                    </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <div class="fw-500 text-truncate" style="max-width: 200px;">{{ product.name }}</div>
+                                <div class="text-muted fs-xs">ID: #{{ product.id }}</div>
+                            </div>
+                        </td>
+                        <td class="py-2">
+                            <span class="badge bg-light text-dark">{{ product.category.name }}</span>
+                        </td>
+                        <td class="py-2">₹{{ product.price }}</td>
+                        <td class="py-2">{{ product.available_quantity }}</td>
+                        <td class="py-2">
+                            {% if product.available_quantity > 0 %}
+                            <span class="badge bg-success-subtle text-success">In Stock</span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger">Out of Stock</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 text-end">
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#editProductModal{{ product.id }}">
+                                Edit
+                            </button>
+                            <form method="POST" action="{% url 'delete_product' product.id %}"
+                                style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Are you sure you want to delete this product?');">
+                                    Delete
+                                </button>
+                            </form>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#addVariantModal{{ product.id }}">
+                                Add Variant
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% include 'partials/pagination.html' %}
+        </div>
+    </div>
+</div>
+
+    <!-- Modal for displaying all images -->
+{% for product in data %}
+<div class="modal fade" id="imageModal{{ product.id }}" tabindex="-1"
+    aria-labelledby="imageModalLabel{{ product.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel{{ product.id }}">{{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex flex-wrap gap-3">
+                    {% for image in product.images.all %}
+                    <img src="{{ image.image_url.url }}" alt="Product Image"
+                        class="img-thumbnail" style="width: 300px; height: auto;">
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% for product in data %}
+<div class="modal fade" id="editProductModal{{ product.id }}" tabindex="-1" aria-labelledby="editProductModalLabel{{ product.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProductModalLabel{{ product.id }}">Edit Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Form Starts Here -->
+            <form method="POST" enctype="multipart/form-data" action="{% url 'edit_product' product.id %}" id="editForm{{ product.id }}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editProductName{{ product.id }}" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="editProductName{{ product.id }}" name="product_name" value="{{ product.name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editProductCategory{{ product.id }}" class="form-label">Category</label>
+                        <select class="form-select" id="editProductCategory{{ product.id }}" name="category" required>
+                            <option disabled>Select category</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if category.id == product.category.id %} selected {% endif %}>
+                                    {{ category.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editProductPrice{{ product.id }}" class="form-label">Base Price (₹)</label>
+                            <input type="number" class="form-control" id="editProductPrice{{ product.id }}" name="price" value="{{ product.price }}" step="0.01" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editAvailableQuantity{{ product.id }}" class="form-label">Base Available Quantity</label>
+                            <input type="number" class="form-control" id="editAvailableQuantity{{ product.id }}" name="available_quantity" value="{{ product.available_quantity }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editDescription{{ product.id }}" class="form-label">Description</label>
+                        <textarea class="form-control" id="editDescription{{ product.id }}" name="description" rows="3" required>{{ product.description }}</textarea>
+                    </div>
+
+                    <!-- Product Variants Section -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">Product Variants</h6>
+                        {% for variant in product.variants.all %}
+                        <div class="variant-row border rounded p-3 mb-2">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label">Weight</label>
+                                    <select class="form-select" name="variant_weights[]" required>
+                                        {% for weight_value, weight_label in weight_choices %}
+                                            <option value="{{ weight_value }}" {% if variant.weight == weight_value %}selected{% endif %}>
+                                                {{ weight_label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Price (₹)</label>
+                                    <input type="number" class="form-control" name="variant_prices[]" value="{{ variant.price }}" step="0.01" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" name="variant_quantities[]" value="{{ variant.available_quantity }}" required>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <input type="hidden" name="variant_ids[]" value="{{ variant.id }}">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="delete_variants[]" value="{{ variant.id }}" id="deleteVariant{{ variant.id }}">
+                                        <label class="form-check-label text-danger" for="deleteVariant{{ variant.id }}">Delete Variant</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Image Upload Section -->
+                    <div class="mb-3">
+                        <label for="editProductImage{{ product.id }}" class="form-label">Upload New Images (Optional)</label>
+                        <input type="file" class="form-control" id="editProductImage{{ product.id }}" name="image" accept="image/*" multiple>
+                        <small class="form-text text-muted">Leave blank to retain existing images.</small>
+                        <div class="mt-3">
+                            <p class="fw-semibold mb-2">Existing Images:</p>
+                            <div class="d-flex flex-wrap gap-3">
+                                {% for image in product.images.all %}
+                                <div class="position-relative image-container">
+                                    <img src="{{ image.image_url.url }}" alt="Product Image" class="product-thumbnail" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;">
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit & Cancel Buttons -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addProductModalLabel">Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'add_product' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="productName" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="productName" name="product_name"
+                            placeholder="Enter product name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productCategory" class="form-label">Category</label>
+                        <select class="form-select" id="productCategory" name="category" required>
+                            <option selected disabled>Select category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="productPrice" class="form-label">Price (₹)</label>
+                            <input type="number" class="form-control" id="productPrice" name="price" step="0.01"
+                                placeholder="Enter price" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="availableQuantity" class="form-label">Available Quantity</label>
+                            <input type="number" class="form-control" id="availableQuantity"
+                                name="available_quantity" placeholder="Enter quantity" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                            placeholder="Enter product description" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productImage" class="form-label">Upload Images</label>
+                        <input type="file" class="form-control" id="productImage" name="image" accept="image/*"
+                            multiple required>
+                        <small class="form-text text-muted">You can upload multiple images.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="variant" class="form-label">Variants</label>
+                        <div id="variant-container">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <select class="form-select" id="variant" name="variant" required>
+                                        <option selected disabled>Select variant</option>
+                                        <option value="250g">250g</option>
+                                        <option value="500g">500g</option>
+                                        <option value="750g">750g</option>
+                                        <option value="1kg">1kg</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <input type="number" class="form-control" id="variantPrice" name="variant_price"
+                                        step="0.01" placeholder="Enter variant price" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <input type="number" class="form-control" id="variantQuantity"
+                                        name="variant_quantity" placeholder="Enter variant quantity" required>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="add-variant">Add Variant</button>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Variant Modals -->
+{% for product in data %}
+<div class="modal fade" id="addVariantModal{{ product.id }}" tabindex="-1" aria-labelledby="addVariantModalLabel{{ product.id }}"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addVariantModalLabel{{ product.id }}">Add Variant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'add_variant' product.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="weight" class="form-label">Weight</label>
+                        <select name="weight" id="weight">
+                            {% for weight, display_value in weight_choices %}
+                                <option value="{{ weight }}">{{ display_value }}</option>
+                            {% endfor %}
+                        </select>                        
+                    </div>
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Price (₹)</label>
+                        <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="available_quantity" class="form-label">Available Quantity</label>
+                        <input type="number" class="form-control" id="available_quantity"
+                            name="available_quantity" required>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Variant</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
+
+
+<!-- Custom CSS -->
+<style>
+.fs-xs { font-size: 0.75rem; }
+.fs-sm { font-size: 0.875rem; }
+.fw-500 { font-weight: 500; }
+.btn-icon { padding: 0.25rem 0.5rem; }
+.form-select-sm { font-size: 0.875rem; }
+.input-group-sm .input-group-text { font-size: 0.875rem; }
+.badge { font-weight: 500; }
+.table > :not(caption) > * > * { padding: 0.5rem; }
+.pagination-sm .page-link { font-size: 0.75rem; }
+.pagination .page-link { padding: 0.25rem 0.5rem; }
+</style>
+
+{% block js %}
+<!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle filter changes
+    document.querySelectorAll('.filter-select').forEach(select => {
+        select.addEventListener('change', function() {
+            applyFilters();
+        });
+    });
+
+    // Handle clear filters
+    document.getElementById('clear-filters').addEventListener('click', function() {
+        document.querySelectorAll('.filter-select').forEach(select => {
+            select.value = '';
+        });
+        window.location.href = window.location.pathname;
+    });
+
+    function applyFilters() {
+        const params = new URLSearchParams();
+        
+        document.querySelectorAll('.filter-select').forEach(select => {
+            if (select.value) {
+                params.append(select.dataset.filter, select.value);
+            }
+        });
+
+        const currentPage = new URLSearchParams(window.location.search).get('page');
+        if (currentPage) {
+            params.append('page', currentPage);
+        }
+
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

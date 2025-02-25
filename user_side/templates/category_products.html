@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}{{ categories.name }} - fresh2home{% endblock %}
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+<section id="daily-offers" class="daily-offers py-5">
+    <div class="container-fluid">
+        {% if query %}
+            <h2 class="section-title text-center mb-4">Search Results for "{{ query }}"</h2>
+        {% else %}
+            <h2 class="section-title text-center mb-4">{{ categories.name }}</h2>
+        {% endif %}
+        
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="d-flex align-items-center">
+                    <div class="input-group input-group-sm flex-nowrap me-2">
+                        <span class="input-group-text border-0 bg-light">
+                            <i class="bi bi-arrow-down-up fs-xs"></i>
+                        </span>
+                        <select class="form-select form-select-sm border-0 bg-light shadow-none text-secondary" id="sortSelect" data-filter="sort" style="width: 130px; padding-left: 0.5rem;">
+                            <option value="">Sort By</option>
+                            <option value="price_low" {% if selected_sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                            <option value="price_high" {% if selected_sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                            <option value="name_asc" {% if selected_sort == 'name_asc' %}selected{% endif %}>Name: A to Z</option>
+                            <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-light border-0 px-2 text-secondary" id="clearFilters" style="height: 31px;">
+                        <i class="bi bi-x-circle me-1 fs-xs"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
+            {% for product in products %}
+            {% if product.available_quantity > 0 %}
+            <div class="col">
+                <div class="card h-100 product-card">
+                    <a href="{% url 'product_detail' product.id %}" class="text-decoration-none">
+                        {% if product.images.all %}
+                        <img src="{{ product.images.first.image_url.url }}" class="card-img-top" alt="{{ product.name }}">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-dark">{{ product.name }}</h5>
+                            <p class="card-text text-muted flex-grow-1">{{ product.description|truncatechars:50 }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <span class="price fw-bold">₹{{ product.price }}</span>
+                                <a href="{% url 'add_to_cart' product_id=product.id %}" class="btn btn-outline-primary btn-sm add-to-cart">Add to Cart</a>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sortSelect = document.getElementById('sortSelect');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+
+        sortSelect.addEventListener('change', function() {
+            const selectedSort = this.value;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('sort', selectedSort);
+            window.location.href = currentUrl.toString();
+        });
+
+        clearFiltersBtn.addEventListener('click', function() {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.delete('sort');
+            window.location.href = currentUrl.toString();
+        });
+    });
+</script>
+{% endblock %}

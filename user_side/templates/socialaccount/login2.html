@@ -1,0 +1,12 @@
+{% extends "login.html" %}  <!-- If your login page has a structure -->
+
+{% block content %}
+    <h2>Sign In via Google</h2>
+    <p>Redirecting you shortly...</p>
+
+    <script>
+        setTimeout(function() {
+            window.location.href = "{% url 'signup' %}";  // Redirect to home or another page
+        }, 2000);
+    </script>
+{% endblock %}

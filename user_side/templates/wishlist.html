@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Wishlist - Fresh2Home{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <section class="wishlist-section">
+        <div class="container">
+            <h1 class="section-title">Your Wishlist</h1>
+            
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% if wishlist_items %}
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="wishlist-items">
+                        {% for item in wishlist_items %}
+                        <div class="wishlist-item shadow-sm rounded p-3 mb-3" id="wishlist-item-{{ item.id }}">
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <div class="item-image">
+                                        {% if item.product.images.first %}
+                                        <img src="{{ item.product.images.first.image_url.url }}" 
+                                             alt="{{ item.product.name }}"
+                                             class="img-fluid rounded">
+                                        {% else %}
+                                        <img src="{% static 'images/default-product.jpg' %}" 
+                                             alt="No Image Available"
+                                             class="img-fluid rounded">
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="item-details">
+                                        <h3 class="item-name h5 mb-2">{{ item.product.name }}</h3>
+                                        <p class="item-price mb-2">₹{{ item.product.price|floatformat:2 }}</p>
+                                        <a href="{% url 'product_detail' item.product.id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            View Product
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <form action="{% url 'remove_from_wishlist' item.product.id %}" 
+                                          method="POST" 
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Are you sure you want to remove this item from your wishlist?')">
+                                            <i class="fas fa-trash me-1"></i>Remove
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-wishlist text-center py-5">
+                <i class="fas fa-heart text-muted mb-3" style="font-size: 3rem;"></i>
+                <h2 class="h4 mb-3">Your Wishlist is empty</h2>
+                <p class="text-muted mb-4">Browse our products and add your favorite items to your wishlist.</p>
+                <a href="{% url 'homepage' %}" class="btn btn-primary">Continue Shopping</a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

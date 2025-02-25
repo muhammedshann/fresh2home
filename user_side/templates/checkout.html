@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Checkout - fresh2home{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/payment.css' %}">
+<style>
+    .variant-detail { color: #666; font-size: 0.9em; }
+    .price-display { font-weight: bold; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+<div class="container mt-5 main">
+    <h1 class="mb-4">Checkout</h1>
+
+    <form id="checkoutForm" method="post" action="{% url 'checkout' %}">
+        {% csrf_token %}
+        <input type="hidden" name="coupon_code" id="couponCodeInput">
+        <input type="hidden" name="discount" id="discountInput" value="0">
+
+        <!-- Address Section -->
+        <div class="mb-5">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="h4 mb-3">Delivery Address</h2>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                    <i class="bi bi-plus-circle me-1"></i> Add New Address
+                </button>
+            </div>
+            <div class="row">
+                {% for address in addresses %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 {% if forloop.first %}border-primary{% endif %}">
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="selected_address" 
+                                    value="{{ address.id }}" {% if forloop.first %}checked{% endif %}>
+                                <label class="form-check-label">
+                                    <h5>{{ address.name }}</h5>
+                                    <p class="mb-1">{{ address.street_address }}</p>
+                                    <p class="mb-1">{{ address.city }}, {{ address.state }} - {{ address.pincode }}</p>
+                                    <p class="mb-0">Mobile: {{ address.mobile_number }}</p>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="mb-5">
+            <h2 class="h4 mb-3">Payment Method</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="paymentMethod" 
+                            value="creditCard" id="creditCard" required>
+                        <label class="form-check-label" for="creditCard">
+                            Credit/Debit Card
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="paymentMethod" 
+                            value="wallet" id="wallet">
+                            <label class="form-check-label" for="wallet">
+                                Wallet (₹<span id="walletBalance">{{ wallet_balance }}</span>)
+                            </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="paymentMethod" 
+                            value="cod" id="cod" {% if total_amount > 1000 %}disabled{% endif %}>
+                        <label class="form-check-label" for="cod">
+                            Cash on Delivery
+                            {% if total_amount > 1000 %}
+                            <small class="text-danger">(Not available for orders over ₹1000)</small>
+                            {% endif %}
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coupon Section -->
+        <div class="mb-5">
+            <h2 class="h4 mb-3">Apply Coupon</h2>
+            <div class="input-group">
+                <input type="text" class="form-control" id="couponCode" placeholder="Enter coupon code">
+                <button type="button" class="btn btn-outline-primary" id="applyCouponBtn">Apply</button>
+            </div>
+            <div id="couponMessage" class="mt-2"></div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="mb-5">
+            <h2 class="h4 mb-3">Order Summary</h2>
+            <div class="card">
+                <div class="card-body">
+                    {% for item in cart_items %}
+                    <div class="d-flex justify-content-between mb-3">
+                        <div>
+                            <h6 class="mb-0">{{ item.product.name }}</h6>
+                            {% if item.variant %}
+                            <small class="variant-detail">{{ item.variant.get_weight_display }}</small>
+                            {% endif %}
+                            <div class="text-muted">Qty: {{ item.quantity }}</div>
+                        </div>
+                        <div class="price-display">
+                            ₹<span class="item-price">{% if item.variant %}{{ item.variant.price }}{% else %}{{ item.product.price }}{% endif %}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Subtotal</span>
+                        <span>₹<span id="subtotal">{{ subtotal|floatformat:2 }}</span></span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Shipping</span>
+                        <span>₹<span id="shippingCharge">{{ shipping_charge|floatformat:2 }}</span></span>
+                    </div>
+                    <div class="d-flex justify-content-between text-danger">
+                        <span>Discount</span>
+                        <span>-₹<span id="discountAmount">0.00</span></span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Total Amount</span>
+                        <span>₹<span id="totalAmount">{{ total_amount|floatformat:2 }}</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button type="button" class="btn btn-primary btn-lg" id="placeOrderBtn">
+                Place Order
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Razorpay Form -->
+<form id="razorpayForm" action="{% url 'razorpay_callback' %}" method="POST" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
+    <input type="hidden" name="razorpay_order_id" id="razorpay_order_id">
+    <input type="hidden" name="razorpay_signature" id="razorpay_signature">
+</form>
+
+<!-- Add Address Modal -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">Add New Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="{% url 'address_create' %}" id="addressForm" method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Number</label>
+                            <input type="tel" class="form-control" name="mobile_number" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Alternate Number</label>
+                            <input type="tel" class="form-control" name="alternate_number" placeholder="Optional">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">PIN Code</label>
+                            <input type="text" class="form-control" name="pin_code" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">City</label>
+                            <input type="text" class="form-control" name="city" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">District</label>
+                            <input type="text" class="form-control" name="district" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">State</label>
+                            <input type="text" class="form-control" name="state" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Landmark</label>
+                            <input type="text" class="form-control" name="land_mark" placeholder="Optional">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Address Type</label>
+                            <select class="form-select" name="address_type" required>
+                                <option value="HOME">Home</option>
+                                <option value="WORK">Work</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Address</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize variables
+    const subtotalElement = document.getElementById('subtotal');
+    const shippingChargeElement = document.getElementById('shippingCharge');
+    const discountAmountElement = document.getElementById('discountAmount');
+    const totalAmountElement = document.getElementById('totalAmount');
+    const couponCodeInput = document.getElementById('couponCode');
+    const couponCodeHidden = document.getElementById('couponCodeInput');
+    const discountInput = document.getElementById('discountInput');
+
+    // Coupon Handling
+    document.getElementById('applyCouponBtn').addEventListener('click', function() {
+        const couponCode = couponCodeInput.value.trim();
+        if (!couponCode) {
+            showCouponMessage('Please enter a coupon code', 'danger');
+            return;
+        }
+
+        // Get current values
+        const subtotal = parseFloat(subtotalElement.textContent) || 0;
+        const shippingCharge = parseFloat(shippingChargeElement.textContent) || 0;
+
+        fetch("{% url 'apply_coupon' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ 
+                coupon_code: couponCode,
+                subtotal: subtotal.toString(),
+                shipping_charge: shippingCharge.toString()
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                discountAmountElement.textContent = data.discount.toFixed(2);
+                totalAmountElement.textContent = data.total_amount.toFixed(2);
+                couponCodeHidden.value = couponCode;
+                discountInput.value = data.discount.toString();
+                showCouponMessage('Coupon applied successfully!', 'success');
+                
+                // Update COD availability based on new total
+                updateCODAvailability(data.total_amount);
+            } else {
+                showCouponMessage(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showCouponMessage('An error occurred while applying the coupon.', 'danger');
+        });
+    });
+
+    // Order Placement
+    document.getElementById('placeOrderBtn').addEventListener('click', function() {
+        const form = document.getElementById('checkoutForm');
+        const formData = new FormData(form);
+        
+        // Validate address selection
+        const selectedAddress = formData.get('selected_address');
+        if (!selectedAddress) {
+            alert('Please select a delivery address');
+            return;
+        }
+
+        // Validate payment method
+        const paymentMethod = formData.get('paymentMethod');
+        if (!paymentMethod) {
+            alert('Please select a payment method');
+            return;
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Accept': 'application/json'  // Explicitly request JSON
+            }
+        })
+        .then(response => {
+    if (!response.ok) {  // Handle HTTP error statuses
+        return response.json().then(err => Promise.reject(err));
+    }
+    return response.json();
+})
+        .then(data => {
+            if (data.status === 'success') {
+                if (paymentMethod === 'cod') {
+                    window.location.href = "{% url 'order_success' %}";
+                } else {
+                    handleRazorpayPayment(data);
+                }
+            } else {
+                alert(data.message || 'Error processing order');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while processing your order.');
+        });
+    });
+
+    function handleRazorpayPayment(data) {
+        const options = {
+            key: '{{ razorpay_key }}',
+            amount: data.amount,
+            currency: data.currency,
+            order_id: data.razorpay_order_id,
+            name: 'Fresh2Home',
+            description: 'Order Payment',
+            handler: function(response) {
+                document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+                document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
+                document.getElementById('razorpay_signature').value = response.razorpay_signature;
+                document.getElementById('razorpayForm').submit();
+            },
+            prefill: {
+                name: '{{ request.user.get_full_name }}',
+                email: '{{ request.user.email }}',
+                contact: '{{ request.user.profile.phone_number|default:"" }}'
+            },
+            theme: {
+                color: '#3399cc'
+            }
+        };
+        
+        const rzp = new Razorpay(options);
+        rzp.open();
+    }
+
+    function showCouponMessage(message, type) {
+        const messageDiv = document.getElementById('couponMessage');
+        messageDiv.textContent = message;
+        messageDiv.className = `alert alert-${type} mt-2`;
+    }
+
+    function updateCODAvailability(total) {
+        const codInput = document.getElementById('cod');
+        const codLabel = codInput.nextElementSibling;
+        
+        if (total > 1000) {
+            codInput.disabled = true;
+            codInput.checked = false;
+            if (!codLabel.querySelector('.text-danger')) {
+                const small = document.createElement('small');
+                small.className = 'text-danger';
+                small.textContent = ' (Not available for orders over ₹1000)';
+                codLabel.appendChild(small);
+            }
+        } else {
+            codInput.disabled = false;
+            const warning = codLabel.querySelector('.text-danger');
+            if (warning) {
+                warning.remove();
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

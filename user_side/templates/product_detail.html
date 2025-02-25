@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .container {
+        max-width: 1400px;
+        margin: 30px auto;
+        padding: 0 8px;
+    }
+    .variant-select {
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+<div class="container">
+    <div class="product-container">
+        <div class="product-images">
+            <div class="image-wrapper">
+                <div class="img-zoom-lens"></div>
+                <img src="{{ product_images.0.image_url.url }}" alt="{{ product.name }}" class="main-image" id="main-image">
+            </div>
+            <div class="thumbnail-container">
+                {% for image in product_images %}
+                <img src="{{ image.image_url.url }}" alt="{{ product.name }}" class="thumbnail"
+                    onclick="changeMainImage(this.getAttribute('src'))">
+                {% endfor %}
+            </div>
+        </div>
+        <div class="product-info">
+            <h1 class="product-title">{{ product.name }}</h1>
+            {% if product.rating %}
+            <div class="stars">
+                {% for _ in "12345"|slice:":product.rating"|make_list %}★{% endfor %}
+                {% for _ in "12345"|slice:"product.rating:"|make_list %}☆{% endfor %}
+            </div>
+            {% endif %}
+            <div class="variant-select">
+                <label for="variant-select">Select Weight:</label>
+                <select id="variant-select" class="form-control">
+                    {% for variant in product.variants.all %}
+                        <option value="{{ variant.id }}">{{ variant.get_weight_display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="variant-info"></div>
+
+            <form action="{% url 'add_wishlist' product.id %}" method="POST" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn p-0 border-0 bg-transparent">
+                    {% if wishlist %}
+                        <i class="fas fa-heart text-danger fs-4"></i> 
+                    {% else %}
+                        <i class="far fa-heart text-dark fs-4"></i> 
+                    {% endif %}
+                </button>
+            </form>
+            <form id="add-to-cart-form" action="{% url 'add_to_cart' product.id %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="variant_id" id="variant-id-input" value="{{ product.variants.first.id }}">
+                <div class="quantity">
+                    <input type="number" name="quantity" value="1" min="1" id="quantity-input">
+                    <span>pack(s)</span>
+                </div>
+                <button type="submit" class="add-to-cart btn btn-primary">Add to Cart</button>
+            </form>
+            <div class="description">
+                <h3>Product Description</h3>
+                <p>{{ product.description }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    $(document).ready(function() {
+        function updateVariantInfo(variantId) {
+            $.ajax({
+                url: "{% url 'get_variant_info' %}",
+                data: {
+                    'variant_id': variantId
+                },
+                dataType: 'json',
+                success: function(data) {
+                    $('#variant-info').html(`
+                        <div class="price">₹${data.price} / PACK</div>
+                        <div class="available-quantity text-dark">
+                            Available Quantity: ${data.available_quantity} pack(s)
+                        </div>
+                    `);
+                    $('#variant-id-input').val(variantId); // Update the hidden input field
+                    $('#quantity-input').attr('max', data.available_quantity);
+                }
+            });
+        }
+    
+        // Update variant info when the user selects a variant
+        $('#variant-select').change(function() {
+            updateVariantInfo($(this).val());
+        });
+    
+        // Initialize with the first variant
+        updateVariantInfo($('#variant-select').val());
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+        const imageWrapper = document.querySelector(".image-wrapper");
+        const mainImage = document.getElementById("main-image");
+        const lens = document.querySelector(".img-zoom-lens");
+        
+        // Customize zoom level here (1.5 = 150% zoom)
+        const ZOOM_LEVEL = 1.5;
+        
+        function moveZoomArea(e) {
+            const rect = imageWrapper.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Calculate lens position
+            let lensX = x - lens.offsetWidth / 2;
+            let lensY = y - lens.offsetHeight / 2;
+            
+            // Boundary checks
+            if (lensX < 0) lensX = 0;
+            if (lensY < 0) lensY = 0;
+            if (lensX > rect.width - lens.offsetWidth) lensX = rect.width - lens.offsetWidth;
+            if (lensY > rect.height - lens.offsetHeight) lensY = rect.height - lens.offsetHeight;
+            
+            // Position lens
+            lens.style.left = lensX + "px";
+            lens.style.top = lensY + "px";
+            
+            // Calculate and set zoom with reduced scale
+            const scaleX = (x / rect.width) * 100;
+            const scaleY = (y / rect.height) * 100;
+            mainImage.style.transformOrigin = `${scaleX}% ${scaleY}%`;
+            mainImage.style.transform = `scale(${ZOOM_LEVEL})`;
+        }
+        
+        // Smooth zoom in
+        imageWrapper.addEventListener("mouseenter", function() {
+            lens.style.display = "block";
+            mainImage.style.transition = "transform 0.2s ease-out";
+        });
+        
+        // Smooth zoom out
+        imageWrapper.addEventListener("mouseleave", function() {
+            lens.style.display = "none";
+            mainImage.style.transform = "scale(1)";
+            mainImage.style.transition = "transform 0.2s ease-out";
+        });
+        
+        imageWrapper.addEventListener("mousemove", moveZoomArea);
+    });
+
+    function changeMainImage(src) {
+        const mainImage = document.getElementById("main-image");
+        mainImage.src = src;
+    }
+</script>
+{% endblock %}

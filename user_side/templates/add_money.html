@@ -1,0 +1,73 @@
+<!-- add_money.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Money</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Add Money to Wallet</h1>
+    <form id="addMoneyForm" onsubmit="event.preventDefault(); initiatePayment();">
+        <input type="number" id="amount" name="amount" placeholder="Enter amount" required>
+        <button type="submit">Pay</button>
+    </form>
+
+    <form id="razorpayForm" action="{% url 'payment_callback' %}" method="POST" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" id="razorpay_payment_id" name="razorpay_payment_id">
+        <input type="hidden" id="razorpay_order_id" name="razorpay_order_id">
+        <input type="hidden" id="razorpay_signature" name="razorpay_signature">
+    </form>
+
+    <script>
+        function initiatePayment() {
+            const amount = document.getElementById('amount').value;
+
+            // Make an AJAX request to create a Razorpay order
+            fetch("{% url 'add_money' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ amount: amount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                handleRazorpayPayment(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function handleRazorpayPayment(data) {
+            const options = {
+                key: '{{ settings.RAZORPAY_KEY_ID }}', // Your Razorpay Key ID
+                amount: data.amount, // Amount in paise
+                currency: data.currency,
+                order_id: data.id, // Use the order ID returned from Razorpay
+                name: 'Fresh2Home',
+                description: 'Order Payment',
+                handler: function(response) {
+                    document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+                    document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
+                    document.getElementById('razorpay_signature').value = response.razorpay_signature;
+                    document.getElementById('razorpayForm').submit(); // Submit the form to your server
+                },
+                prefill: {
+                    name: '{{ request.user.get_full_name }}',
+                    email: '{{ request.user.email }}',
+                    contact: '{{ request.user.profile.phone_number|default:"" }}'
+                },
+                theme: {
+                    color: '#3399cc'
+                }
+            };
+            
+            const rzp = new Razorpay(options);
+            rzp.open();
+        }
+    </script>
+</body>
+</html>

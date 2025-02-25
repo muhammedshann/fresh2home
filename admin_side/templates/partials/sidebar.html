@@ -1,0 +1,41 @@
+<div class="sidebar" id="sidebar">
+    <div class="logo-container">
+        <a href="#" class="logo">fresh 2<br>home</a>
+    </div>
+
+    <nav class="nav-menu">
+        <a href="#" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-grid"></i> Dashboard
+        </a>
+        <a href="{% url 'products' %}" class="nav-link {% if request.resolver_match.url_name == 'products' %}active{% endif %}">
+            <i class="bi bi-box"></i> Products
+        </a>
+        <a href="{% url 'orders' %}" class="nav-link {% if request.resolver_match.url_name == 'orders' %}active{% endif %}">
+            <i class="bi bi-cart"></i> Orders
+        </a>
+        <a href="{% url 'customers' %}" class="nav-link {% if request.resolver_match.url_name == 'customers' %}active{% endif %}">
+            <i class="bi bi-people"></i> Customers
+        </a>
+        <a href="{% url 'reviews' %}" class="nav-link {% if request.resolver_match.url_name == 'reviews' %}active{% endif %}">
+            <i class="bi bi-star"></i> Reviews
+        </a>
+        <a href="{% url 'offers' %}" class="nav-link {% if request.resolver_match.url_name == 'offers' %}active{% endif %}">
+            <i class="bi bi-gift"></i> Offers
+        </a>
+        <a href="{% url 'contactus' %}" class="nav-link {% if request.resolver_match.url_name == 'contactus' %}active{% endif %}">
+            <i class="bi bi-chat"></i> Contact us
+        </a>
+        <a href="{% url 'coupen' %}" class="nav-link {% if request.resolver_match.url_name == 'coupen' %}active{% endif %}">
+            <i class="bi bi-ticket"></i> Coupon
+        </a>
+        <a href="{% url 'banner' %}" class="nav-link {% if request.resolver_match.url_name == 'banner' %}active{% endif %}">
+            <i class="bi bi-image"></i> Banner management
+        </a>
+        <a href="{% url 'category' %}" class="nav-link {% if request.resolver_match.url_name == 'category' %}active{% endif %}">
+            <i class="bi bi-grid"></i> Category
+        </a>
+        <a href="{% url 'notification' %}" class="nav-link {% if request.resolver_match.url_name == 'notification' %}active{% endif %}">
+            <i class="bi bi-bell"></i> Notification
+        </a>
+    </nav>    
+</div>

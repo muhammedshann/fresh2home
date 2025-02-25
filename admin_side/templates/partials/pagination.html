@@ -1,0 +1,34 @@
+<!-- Compact Pagination -->
+{% if data.paginator.num_pages > 0 %}
+<div class="card-footer bg-white border-0 py-2">
+    <nav class="d-flex justify-content-between align-items-center">
+        <small class="text-muted fs-xs">
+            Showing {{ data.start_index }} to {{ data.end_index }} of {{ data.paginator.count }} entries
+        </small>
+        <ul class="pagination pagination-sm mb-0">
+            {% if data.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ data.previous_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                    <i class="bi bi-chevron-left fs-xs"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for i in data.paginator.page_range %}
+            <li class="page-item {% if data.number == i %}active{% endif %}">
+                <a class="page-link" href="?page={{ i }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ i }}</a>
+            </li>
+            {% endfor %}
+
+            {% if data.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ data.next_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                    <i class="bi bi-chevron-right fs-xs"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+</div>
