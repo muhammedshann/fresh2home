@@ -34,6 +34,9 @@ from django.template.loader import get_template
 from django.contrib.auth.forms import PasswordResetForm
 
 
+# New View
+
+
 
 def send_otp_email(request):
     otp = generate_otp()
