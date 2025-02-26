@@ -898,6 +898,86 @@ def checkout(request):
                             'message': 'An error occurred while processing your order.'
                         }, status=400)
 
+                elif payment_method == 'wallet':
+                    try:
+                        # Get user's wallet
+                        wallet = Wallet.objects.get(user=request.user)
+                        
+                        # Check if wallet has sufficient balance
+                        if wallet.balance < total_amount:
+                            return JsonResponse({
+                                'error': 'Insufficient wallet balance',
+                                'current_balance': str(wallet.balance),
+                                'required_amount': str(total_amount)
+                            }, status=400)
+                        
+                        with transaction.atomic():
+                            # Create payment record
+                            payment = Payment.objects.create(
+                                user=request.user,
+                                amount=total_amount,
+                                status='CONFIRMED',  # Wallet payments complete immediately
+                                method='wallet',
+                                date=timezone.now()
+                            )
+                            
+                            # Deduct from wallet
+                            wallet.balance -= total_amount
+                            wallet.save()
+                            
+                            # Create wallet transaction
+                            WalletTransaction.objects.create(
+                                wallet=wallet,
+                                order=None,  # Will be updated after order creation
+                                amount=total_amount,
+                                type='DEBIT'
+                            )
+                            
+                            # Create order
+                            order = create_order(
+                                user=request.user,
+                                address_id=address_id,
+                                total=total_amount,
+                                shipping_charge=shipping_charge,
+                                cart_items=cart_items,
+                                coupon_code=coupon_code,
+                                discount=discount,
+                                payment=payment,
+                                net_amount=total_amount
+                            )
+                            
+                            # Update wallet transaction with order reference
+                            WalletTransaction.objects.filter(
+                                wallet=wallet,
+                                order=None,
+                                type='DEBIT'
+                            ).update(order=order)
+                            
+                            # Reduce stock and clear cart
+                            for item in cart_items:
+                                item.product.available_quantity -= item.quantity
+                                item.product.save()
+                            
+                            cart_items.delete()
+                            
+                            # Clear the pending coupon from session if exists
+                            if 'pending_coupon' in request.session:
+                                del request.session['pending_coupon']
+                            
+                            return JsonResponse({
+                                'status': 'success',
+                                'redirect_url': reverse('order_success')
+                            })
+                    
+                    except Wallet.DoesNotExist:
+                        return JsonResponse({'error': 'No wallet found for this account'}, status=400)
+                    except Exception as e:
+                        print(f"Wallet Payment Error: {str(e)}")
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': 'An error occurred while processing your wallet payment.'
+                        }, status=400)
+
                 elif payment_method in ['creditCard', 'debitCard']:
                     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
@@ -966,6 +1046,7 @@ def checkout(request):
         cart = Cart.objects.get(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
         addresses = Address.objects.filter(user=request.user)
+        wallet = Wallet.objects.get(user=request.user)
 
         if not cart_items.exists():
             messages.error(request, 'Your cart is empty')
@@ -985,6 +1066,7 @@ def checkout(request):
             'shipping_charge': shipping_charge,
             'total_amount': total_amount,
             'razorpay_key': settings.RAZORPAY_KEY_ID,
+            'wallet_balance': wallet,
         }
         return render(request, 'checkout.html', context)
 
