@@ -714,6 +714,12 @@ main {
 .bg-delivered { background-color: #28a745; }
 .bg-cancelled { background-color: #dc3545; }
 
+/* Complaint Status Badge Colors */
+/* .bg-pending { background-color: #ffcc00; } */
+.bg-in_progress { background-color: #007bff; }
+.bg-resolved { background-color: #28a745; }
+.bg-rejected { background-color: #dc3545; }
+
 /* Card hover effects */
 .card {
     transition: transform 0.2s ease;

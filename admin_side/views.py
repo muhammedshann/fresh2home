@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate, login , logout
 from django.contrib import messages
 from django.http import JsonResponse
 from decimal import Decimal, InvalidOperation
-from user_side.models import Products , Category ,ProductImage , User , Review,Banner,Order,OrderItem,ProductVariant,Coupon,Store,Complaint
+from user_side.models import Products , Category ,ProductImage , User , Review,Banner,Order,OrderItem,ProductVariant,Coupon,Store,Complaint,WalletTransaction,Wallet
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.utils import timezone
@@ -14,6 +14,8 @@ from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from openpyxl import Workbook
 from io import BytesIO
+from django.core.mail import send_mail
+
 
 @never_cache
 def adminlogin(request):
@@ -926,20 +928,111 @@ def complaints(request):
 
 @login_required
 def update_complaint_status(request, complaint_id):
-    """View to update the status of a complaint."""
     complaint = get_object_or_404(Complaint, id=complaint_id)
+    
     if request.method == 'POST':
         new_status = request.POST.get('status')
         complaint.status = new_status
         complaint.save()
-        messages.success(request, 'Complaint status updated successfully.')
-    return redirect('complaints')
+
+        # Update order status based on complaint
+        complaint.order_item.order.status = new_status
+        complaint.order_item.order.save()
+        user = complaint.order_item.order.user
+        order_item = complaint.order_item
+        # If the complaint is resolved, refund only the specific product's price
+        if new_status == 'RESOLVED':
+            
+            product_price = (order_item.variant.price) * order_item.quantity # Specific product's price (not total amount)
+
+            # Get or create user's wallet
+            wallet, created = Wallet.objects.get_or_create(user=user, defaults={'balance': Decimal('0.00')})
+
+            # Add refund amount to wallet
+            wallet.balance += product_price
+            wallet.save()
+
+            # Log the transaction
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                order=order_item.order,
+                amount=product_price,
+                type='CREDIT'
+            )
+            # email = order_item.order.user.email
+            send_mail(
+                subject="Complaint Resolved - Refund Issued",  # Email subject
+                message=(
+                    f"Dear {user.username},\n\n"
+                    f"Your complaint regarding the product '{order_item.product.name}' has been resolved. "
+                    f"A refund of ₹{product_price} has been credited to your wallet.\n\n"
+                    f"Thank you for your patience.\n\n"
+                    f"Best Regards,\nFresh 2 Home Support Team"
+                ),
+                from_email='support@fresh2home.com',  # Replace with your support email
+                recipient_list=[user.email],  # User's email
+                fail_silently=False,
+            )
+
+            messages.success(request, f'₹{product_price} has been refunded to the wallet for the complained product.')
+        elif new_status == 'REJECTED':
+            # Send rejection email
+            send_mail(
+                subject="Complaint Rejected",
+                message=(
+                    f"Dear {user.username},\n\n"
+                    f"Your complaint regarding the product '{order_item.product.name}' has been reviewed, "
+                    f"but unfortunately, it has been rejected. No refund will be provided for this complaint.\n\n"
+                    f"If you have any further concerns, please contact our support team.\n\n"
+                    f"Best Regards,\nFresh 2 Home Support Team"
+                ),
+                from_email='support@fresh2home.com',  # Replace with your support email
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+
+            messages.warning(request, f"Complaint rejected. No refund issued.")
+
+    return redirect('complaints_list')
 
 @login_required
 def delete_complaint(request, complaint_id):
-    """View to delete a complaint."""
     complaint = get_object_or_404(Complaint, id=complaint_id)
     if request.method == 'POST':
         complaint.delete()
         messages.success(request, 'Complaint deleted successfully.')
     return redirect('complaints')
+
+def resolve_complaint(request, complaint_id):
+    """Marks the complaint as resolved and refunds the specific product price to the user's wallet."""
+    
+    complaint = get_object_or_404(Complaint, id=complaint_id)
+    
+    # Ensure the complaint is not already resolved
+    if complaint.status == 'RESOLVED':
+        messages.warning(request, "This complaint has already been resolved.")
+        return redirect('complaints_list')
+    
+    user_wallet = Wallet.objects.get(user=complaint.user)  # Get the user's wallet
+    
+    # Refund only the price of the specific complained product
+    refund_amount = Decimal(complaint.order_item.variant.price) * Decimal(complaint.order_item.quantity)
+
+    # Update the wallet balance
+    user_wallet.balance += refund_amount
+    user_wallet.save()
+
+    # Create a wallet transaction record
+    WalletTransaction.objects.create(
+        wallet=user_wallet,
+        order=complaint.order_item.order,
+        amount=refund_amount,
+        type='CREDIT'
+    )
+
+    # Update the complaint status to "RESOLVED"
+    complaint.status = 'RESOLVED'
+    complaint.save()
+
+    messages.success(request, f"₹{refund_amount} refunded to {user_wallet.user.username}'s wallet for the complained product.")
+    return redirect('complaints_list')

@@ -15,7 +15,6 @@ from django.views.decorators.http import require_GET
 import random ,string
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
-from django.core.mail import send_mail
 import random
 from django.core.mail import send_mail
 from django.http import HttpResponse
@@ -790,7 +789,7 @@ def checkout(request):
             address_id = request.POST.get('selected_address')
             payment_method = request.POST.get('paymentMethod')
             
-            # Get pending coupon from session
+            # Get pending coupon from session (if any)
             pending_coupon = request.session.get('pending_coupon')
             coupon_code = None
             discount = Decimal('0')
@@ -816,13 +815,14 @@ def checkout(request):
                     (item.variant.price if item.variant else item.product.price) * item.quantity
                     for item in cart_items
                 )
-                print(subtotal)
+                print("Subtotal:", subtotal)
                 shipping_charge = 0 if subtotal > 499 else 50
-                print(shipping_charge)
+                print("Shipping Charge:", shipping_charge)
+                
                 # Handle coupon if present
                 if pending_coupon:
-                    coupon_code = pending_coupon['code']
-                    discount = Decimal(pending_coupon['discount'])
+                    coupon_code = pending_coupon.get('code')
+                    discount = Decimal(pending_coupon.get('discount', '0'))
                     
                     # Validate coupon again
                     try:
@@ -850,7 +850,7 @@ def checkout(request):
 
                 total_amount = subtotal + shipping_charge - discount
 
-                # Check stock availability
+                # Check stock availability for each item
                 for item in cart_items:
                     if item.quantity > item.product.available_quantity:
                         messages.error(request, f'Out of stock: {item.product.name}')
@@ -882,7 +882,7 @@ def checkout(request):
 
                             cart_items.delete()
 
-                            # Clear the pending coupon from session
+                            # Clear the pending coupon from session if exists
                             if 'pending_coupon' in request.session:
                                 del request.session['pending_coupon']
 
@@ -902,7 +902,7 @@ def checkout(request):
                     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
                     razorpay_order = client.order.create({
-                        'amount': int(total_amount * 100),
+                        'amount': int(total_amount * 100),  # Razorpay accepts amount in paise
                         'currency': 'INR',
                         'payment_capture': '1'
                     })
@@ -936,7 +936,7 @@ def checkout(request):
                         
                         cart_items.delete()
 
-                        # Clear the pending coupon from session
+                        # Clear the pending coupon from session if exists
                         if 'pending_coupon' in request.session:
                             del request.session['pending_coupon']
 
@@ -961,13 +961,11 @@ def checkout(request):
                 'message': str(e)
             }, status=400)
 
-    # GET Request - Show Checkout Page
+    # GET Request - Render Checkout Page
     try:
         cart = Cart.objects.get(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
         addresses = Address.objects.filter(user=request.user)
-        # wallet_balance = request.user.wallet.balance
-        # print(wallet_balance)
 
         if not cart_items.exists():
             messages.error(request, 'Your cart is empty')
@@ -987,7 +985,6 @@ def checkout(request):
             'shipping_charge': shipping_charge,
             'total_amount': total_amount,
             'razorpay_key': settings.RAZORPAY_KEY_ID,
-            # 'wallet_balance': wallet_balance,
         }
         return render(request, 'checkout.html', context)
 
@@ -995,8 +992,8 @@ def checkout(request):
         messages.error(request, 'Your cart is empty')
         return redirect('cart_view')
 
+
 def create_order(user, address_id, total, shipping_charge, cart_items, coupon_code, discount=None, payment=None, net_amount=0):
-    """Creates an order and its related items."""
     with transaction.atomic():
         order = Order.objects.create(
             user=user,
@@ -1010,18 +1007,19 @@ def create_order(user, address_id, total, shipping_charge, cart_items, coupon_co
             coupon_code=coupon_code,
             discount=discount or 0 
         )
-
-        # Create order items
+        print('-------------------------------')
+        # Create order items (use variant price if available)
         for item in cart_items:
+            price = item.variant.price if item.variant else item.product.price
             OrderItem.objects.create(
                 order=order,
                 product=item.product,
                 quantity=item.quantity,
                 variant=item.variant,
-                total_amount=(item.variant.price) * item.quantity
+                total_amount=price * item.quantity
             )
 
-        # If coupon was used, create or update the usage record
+        # If coupon was used, update the usage record
         if coupon_code:
             try:
                 coupon = Coupon.objects.get(code=coupon_code)
@@ -1036,15 +1034,15 @@ def create_order(user, address_id, total, shipping_charge, cart_items, coupon_co
             except Coupon.DoesNotExist:
                 pass
 
-        # Reward the referrer if it's the user's first order
-        if user.referred_by and not Order.objects.filter(user=user).exclude(id=order.id).exists():
+        # Reward the referrer if this is the user's first order
+        if user.referred_by and Order.objects.filter(user=user).count() == 1:
             referrer = user.referred_by
             wallet, created = Wallet.objects.get_or_create(user=referrer, defaults={'balance': Decimal('50')})
             if not created:
-                wallet.balance += Decimal('1000')
+                wallet.balance += Decimal('50')
                 wallet.save()
 
-            # Create a wallet transaction
+            # Create a wallet transaction for the referrer
             WalletTransaction.objects.create(
                 wallet=wallet,
                 order=order,

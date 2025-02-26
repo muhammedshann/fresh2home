@@ -46,7 +46,7 @@
                                 <label class="form-check-label">
                                     <h5>{{ address.name }}</h5>
                                     <p class="mb-1">{{ address.street_address }}</p>
-                                    <p class="mb-1">{{ address.city }}, {{ address.state }} - {{ address.pincode }}</p>
+                                    <p class="mb-1">{{ address.city }}, {{ address.state }} - {{ address.pin_code }}</p>
                                     <p class="mb-0">Mobile: {{ address.mobile_number }}</p>
                                 </label>
                             </div>
@@ -220,116 +220,133 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
 {% block script %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Initialize variables
+
+    // Initialize variables (ensure these IDs match your HTML)
     const subtotalElement = document.getElementById('subtotal');
     const shippingChargeElement = document.getElementById('shippingCharge');
     const discountAmountElement = document.getElementById('discountAmount');
     const totalAmountElement = document.getElementById('totalAmount');
     const couponCodeInput = document.getElementById('couponCode');
+    // Ensure the hidden coupon code input field has the correct ID; adjust if necessary.
     const couponCodeHidden = document.getElementById('couponCodeInput');
     const discountInput = document.getElementById('discountInput');
 
     // Coupon Handling
-    document.getElementById('applyCouponBtn').addEventListener('click', function() {
-        const couponCode = couponCodeInput.value.trim();
-        if (!couponCode) {
-            showCouponMessage('Please enter a coupon code', 'danger');
-            return;
-        }
-
-        // Get current values
-        const subtotal = parseFloat(subtotalElement.textContent) || 0;
-        const shippingCharge = parseFloat(shippingChargeElement.textContent) || 0;
-
-        fetch("{% url 'apply_coupon' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ 
-                coupon_code: couponCode,
-                subtotal: subtotal.toString(),
-                shipping_charge: shippingCharge.toString()
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                discountAmountElement.textContent = data.discount.toFixed(2);
-                totalAmountElement.textContent = data.total_amount.toFixed(2);
-                couponCodeHidden.value = couponCode;
-                discountInput.value = data.discount.toString();
-                showCouponMessage('Coupon applied successfully!', 'success');
-                
-                // Update COD availability based on new total
-                updateCODAvailability(data.total_amount);
-            } else {
-                showCouponMessage(data.message, 'danger');
+    const applyCouponBtn = document.getElementById('applyCouponBtn');
+    if (applyCouponBtn) {
+        applyCouponBtn.addEventListener('click', function() {
+            const couponCode = couponCodeInput.value.trim();
+            if (!couponCode) {
+                showCouponMessage('Please enter a coupon code', 'danger');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showCouponMessage('An error occurred while applying the coupon.', 'danger');
+
+            // Get current values, ensuring we have numbers
+            const subtotal = parseFloat(subtotalElement.textContent) || 0;
+            const shippingCharge = parseFloat(shippingChargeElement.textContent) || 0;
+
+            fetch("{% url 'apply_coupon' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ 
+                    coupon_code: couponCode,
+                    subtotal: subtotal.toString(),
+                    shipping_charge: shippingCharge.toString()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    discountAmountElement.textContent = data.discount.toFixed(2);
+                    totalAmountElement.textContent = data.total_amount.toFixed(2);
+                    if (couponCodeHidden) couponCodeHidden.value = couponCode;
+                    if (discountInput) discountInput.value = data.discount.toString();
+                    showCouponMessage('Coupon applied successfully!', 'success');
+                    
+                    // Update COD availability based on the new total amount
+                    updateCODAvailability(data.total_amount);
+                } else {
+                    showCouponMessage(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showCouponMessage('An error occurred while applying the coupon.', 'danger');
+            });
         });
-    });
+    }
 
     // Order Placement
-    document.getElementById('placeOrderBtn').addEventListener('click', function() {
-        const form = document.getElementById('checkoutForm');
-        const formData = new FormData(form);
-        
-        // Validate address selection
-        const selectedAddress = formData.get('selected_address');
-        if (!selectedAddress) {
-            alert('Please select a delivery address');
-            return;
-        }
-
-        // Validate payment method
-        const paymentMethod = formData.get('paymentMethod');
-        if (!paymentMethod) {
-            alert('Please select a payment method');
-            return;
-        }
-
-        fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Accept': 'application/json'  // Explicitly request JSON
+    const placeOrderBtn = document.getElementById('placeOrderBtn');
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', function() {
+            const form = document.getElementById('checkoutForm');
+            if (!form) {
+                alert('Checkout form not found.');
+                return;
             }
-        })
-        .then(response => {
-    if (!response.ok) {  // Handle HTTP error statuses
-        return response.json().then(err => Promise.reject(err));
-    }
-    return response.json();
-})
-        .then(data => {
-            if (data.status === 'success') {
-                if (paymentMethod === 'cod') {
-                    window.location.href = "{% url 'order_success' %}";
-                } else {
-                    handleRazorpayPayment(data);
+            const formData = new FormData(form);
+            
+            // Validate address selection
+            const selectedAddress = formData.get('selected_address');
+            if (!selectedAddress) {
+                alert('Please select a delivery address');
+                return;
+            }
+
+            // Validate payment method
+            const paymentMethod = formData.get('paymentMethod');
+            if (!paymentMethod) {
+                alert('Please select a payment method');
+                return;
+            }
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Accept': 'application/json'
                 }
-            } else {
-                alert(data.message || 'Error processing order');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while processing your order.');
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    if (paymentMethod === 'cod' || paymentMethod === 'wallet') {
+                        // For COD and wallet payments, redirect directly to the success page
+                        window.location.href = data.redirect_url || "{% url 'order_success' %}";
+                    } else {
+                        // For credit/debit card payments, open Razorpay
+                        handleRazorpayPayment(data);
+                    }
+                } else {
+                    alert(data.message || 'Error processing order');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (error.error) {
+                    alert(error.error);
+                } else {
+                    alert('An error occurred while processing your order.');
+                }
+            });
         });
-    });
+    }
 
+    // Razorpay Payment Handler
     function handleRazorpayPayment(data) {
         const options = {
             key: '{{ razorpay_key }}',
@@ -339,10 +356,14 @@ document.addEventListener("DOMContentLoaded", function() {
             name: 'Fresh2Home',
             description: 'Order Payment',
             handler: function(response) {
-                document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
-                document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
-                document.getElementById('razorpay_signature').value = response.razorpay_signature;
-                document.getElementById('razorpayForm').submit();
+                const paymentIdElem = document.getElementById('razorpay_payment_id');
+                const orderIdElem = document.getElementById('razorpay_order_id');
+                const signatureElem = document.getElementById('razorpay_signature');
+                if (paymentIdElem) paymentIdElem.value = response.razorpay_payment_id;
+                if (orderIdElem) orderIdElem.value = response.razorpay_order_id;
+                if (signatureElem) signatureElem.value = response.razorpay_signature;
+                const razorpayForm = document.getElementById('razorpayForm');
+                if (razorpayForm) razorpayForm.submit();
             },
             prefill: {
                 name: '{{ request.user.get_full_name }}',
@@ -358,20 +379,25 @@ document.addEventListener("DOMContentLoaded", function() {
         rzp.open();
     }
 
+    // Display coupon messages in the UI
     function showCouponMessage(message, type) {
         const messageDiv = document.getElementById('couponMessage');
-        messageDiv.textContent = message;
-        messageDiv.className = `alert alert-${type} mt-2`;
+        if (messageDiv) {
+            messageDiv.textContent = message;
+            messageDiv.className = `alert alert-${type} mt-2`;
+        }
     }
 
+    // Enable or disable COD based on total amount
     function updateCODAvailability(total) {
         const codInput = document.getElementById('cod');
+        if (!codInput) return;
         const codLabel = codInput.nextElementSibling;
         
         if (total > 1000) {
             codInput.disabled = true;
             codInput.checked = false;
-            if (!codLabel.querySelector('.text-danger')) {
+            if (codLabel && !codLabel.querySelector('.text-danger')) {
                 const small = document.createElement('small');
                 small.className = 'text-danger';
                 small.textContent = ' (Not available for orders over ₹1000)';
@@ -379,12 +405,15 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         } else {
             codInput.disabled = false;
-            const warning = codLabel.querySelector('.text-danger');
-            if (warning) {
-                warning.remove();
+            if (codLabel) {
+                const warning = codLabel.querySelector('.text-danger');
+                if (warning) {
+                    warning.remove();
+                }
             }
         }
     }
-});
+
 </script>
+{% endblock %}
 {% endblock %}
