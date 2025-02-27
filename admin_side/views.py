@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate, login , logout
 from django.contrib import messages
 from django.http import JsonResponse
 from decimal import Decimal, InvalidOperation
-from user_side.models import Products , Category ,ProductImage , User , Review,Banner,Order,OrderItem,ProductVariant,Coupon,Store,Complaint,WalletTransaction,Wallet
+from user_side.models import Products , Category ,ProductImage , User , Review,Banner,Order,OrderItem,ProductVariant,Coupon,Store,Complaint,WalletTransaction,Wallet,Address
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.utils import timezone
@@ -89,7 +89,6 @@ def sales_report(request):
         elif format == 'excel':
             return generate_excel(orders, report)
 
-    # Return JSON if AJAX request
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse(report)
 
@@ -102,7 +101,6 @@ def sales_report(request):
     })
 
 def generate_excel(orders, report):
-    # Create a DataFrame from the orders
     data = {
         'Order ID': [order.id for order in orders],
         'Date': [order.order_date.strftime("%Y-%m-%d") for order in orders],
@@ -118,21 +116,17 @@ def generate_excel(orders, report):
     # Create a BytesIO buffer for the Excel file
     buffer = BytesIO()
     
-    # Write the DataFrame to the buffer
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Sales Report')
         
-        # Add summary information to a new sheet
         summary_df = pd.DataFrame({
             'Summary': ['Total Orders', 'Total Sales', 'Total Discount', 'Coupon Orders'],
             'Value': [report['total_orders'], report['total_sales'], report['total_discount'], report['coupon_orders']]
         })
         summary_df.to_excel(writer, index=False, sheet_name='Summary')
 
-    # Seek to the beginning of the buffer
     buffer.seek(0)
 
-    # Create the response
     response = HttpResponse(
         buffer,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -196,67 +190,6 @@ def generate_pdf(request, orders, report):
     response['Content-Disposition'] = f'attachment; filename="sales_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
     return response
 
-# def generate_excel(orders, report):
-#     wb = Workbook()
-#     ws = wb.active
-#     ws.title = "Sales Report"
-    
-#     # Add report summary
-#     ws.append(['Fresh 2 Home - Sales Report'])
-#     ws.append(['Generated on', timezone.now().strftime("%Y-%m-%d %H:%M:%S")])
-#     ws.append([])
-#     ws.append(['Summary'])
-#     ws.append(['Total Orders', report['total_orders']])
-#     ws.append(['Total Sales', f"₹{report['total_sales']:.2f}"])
-#     ws.append(['Total Discount', f"₹{report['total_discount']:.2f}"])
-#     ws.append(['Coupon Orders', report['coupon_orders']])
-#     ws.append([])
-    
-#     # Excel Headers
-#     headers = ['Order ID', 'Date', 'Customer', 'Amount', 'Discount', 'Coupon', 'Status']
-#     ws.append(headers)
-    
-#     # Apply header formatting
-#     for cell in ws[ws.max_row]:
-#         cell.font = cell.font.copy(bold=True)
-    
-#     # Add data
-#     for order in orders:
-#         ws.append([
-#             order.id,
-#             order.order_date,
-#             order.user.username,
-#             order.net_amount,
-#             order.discount,
-#             order.coupon_code or 'N/A',
-#             order.status
-#         ])
-    
-#     # Auto-adjust column widths
-#     for column in ws.columns:
-#         max_length = 0
-#         column_letter = column[0].column_letter
-#         for cell in column:
-#             try:
-#                 if len(str(cell.value)) > max_length:
-#                     max_length = len(str(cell.value))
-#             except:
-#                 pass
-#         adjusted_width = (max_length + 2)
-#         ws.column_dimensions[column_letter].width = adjusted_width
-    
-#     # Save to response
-#     buffer = BytesIO()
-#     wb.save(buffer)
-#     buffer.seek(0)
-    
-#     response = HttpResponse(
-#         buffer,
-#         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-#     )
-#     response['Content-Disposition'] = f'attachment; filename="sales_report_{timezone.now().strftime("%Y%m%d")}.xlsx"'
-#     return response
-
 @login_required(login_url='adminlogin')
 def store(request):
     if request.method == "POST":
@@ -307,12 +240,13 @@ def delete_customer(request, customer_id):
     customer = get_object_or_404(User, id=customer_id)
     
     try:
+        Address.objects.filter(user=customer).delete()
         customer.delete() 
         messages.success(request, "Customer and its related data were successfully deleted.")
     except Exception as e:
         messages.error(request, f"An error occurred: {e}")
     
-    return redirect('customers')  # Redirect back to the customer list
+    return redirect('customers')
 
 
 
@@ -336,12 +270,10 @@ def add_variant(request, product_id):
             price = request.POST.get('price')
             available_quantity = request.POST.get('available_quantity')
 
-            # Validate input data
             if not weight or not price or not available_quantity:
                 messages.error(request, 'Please fill in all fields.')
                 return redirect('products')
 
-            # Create new variant
             ProductVariant.objects.create(
                 product=product,
                 weight=weight,
@@ -364,7 +296,6 @@ def product_list(request):
     products = Products.objects.all().prefetch_related('images')
     categories = Category.objects.all()
 
-    # Get filter and sort parameters
     category_id = request.GET.get('category')
     sort_by = request.GET.get('sort')
     status = request.GET.get('status')
@@ -432,18 +363,15 @@ def product_list(request):
 def add_product(request):
     if request.method == 'POST':
         try:
-            # Get values with validation
             available_quantity = request.POST.get('available_quantity', '0').strip()
             price = request.POST.get('price', '0').strip()
 
-            # Convert to proper types with error handling
             available_quantity = int(available_quantity) if available_quantity.isdigit() else 0
             try:
                 price = Decimal(price)
             except InvalidOperation:
-                price = Decimal(0)  # Default to 0 if conversion fails
+                price = Decimal(0)
 
-            # Get lists safely
             variants = request.POST.getlist('variant')
             variant_prices = [Decimal(p) if p.replace('.', '', 1).isdigit() else Decimal(0) for p in request.POST.getlist('variant_price')]
             variant_quantities = [int(q) if q.isdigit() else 0 for q in request.POST.getlist('variant_quantity')]
@@ -458,7 +386,7 @@ def add_product(request):
             )
 
             # Handle Image Uploads
-            images = request.FILES.getlist('image')  # Get multiple uploaded files
+            images = request.FILES.getlist('image')
             for image in images:
                 ProductImage.objects.create(product=product, image_url=image)
 
@@ -524,17 +452,14 @@ def edit_product(request, product_id):
             variant_prices = request.POST.getlist('variant_prices[]')
             variant_quantities = request.POST.getlist('variant_quantities[]')
 
-            # Get new variant data
             new_variant_weights = request.POST.getlist('new_variant_weights[]')
             new_variant_prices = request.POST.getlist('new_variant_prices[]')
             new_variant_quantities = request.POST.getlist('new_variant_quantities[]')
 
-            # Validate quantities
             if int(available_quantity) < 0:
                 messages.error(request, 'Invalid available stock')
                 return redirect('products')
 
-            # Update main product
             product.name = product_name
             product.category = get_object_or_404(Category, id=category_id)
             product.price = price
@@ -542,21 +467,18 @@ def edit_product(request, product_id):
             product.description = description
             product.save()
 
-            # Handle image uploads
             if images:
                 for img in images:
                     ProductImage.objects.create(product=product, image_url=img)
 
-            # Update existing variants
             for var_id, weight, price, quantity in zip(variant_ids, variant_weights, variant_prices, variant_quantities):
-                if var_id:  # Only update if ID exists
+                if var_id:
                     variant = ProductVariant.objects.get(id=var_id)
                     variant.weight = weight
                     variant.price = price
                     variant.available_quantity = quantity
                     variant.save()
 
-            # Handle variant deletions
             variants_to_delete = request.POST.getlist('delete_variants[]')
             if variants_to_delete:
                 ProductVariant.objects.filter(id__in=variants_to_delete).delete()
@@ -589,49 +511,10 @@ def delete_image(request, image_id):
 @never_cache
 @login_required
 def admin_orders(request):
-    orders = Order.objects.select_related(
-        'user',
-        'payment',
-        'address'
-    ).prefetch_related(
-        'items__product',
-        'payments'
-    ).order_by('-created_at')
-
-    orders_data = []
-    for order in orders:
-        order_items = [{
-            'product_name': item.product.name,
-            'quantity': item.quantity,
-            'total_amount': item.total_amount
-        } for item in order.items.all()]
-
-        # Payment details
-        payment_details = [{
-            'status': payment.status,
-            'amount': payment.amount,
-            'method': payment.method,
-            'payment_date': payment.date
-        } for payment in order.payments.all()]
-
-        order_data = {
-            'id': order.id,
-            'user_name': order.user.username,
-            'address': f"{order.address.name}, {order.address.address_type}, {order.address.city}, {order.address.state}, {order.address.pin_code}",
-            'order_date': order.order_date,
-            'payment_method': order.payment.method if order.payment else 'N/A',
-            'status': order.status,
-            'order_items': order_items,
-            'payment_details': payment_details,
-            'total': order.total,
-            'net_amount': order.net_amount,
-            'shipping_chrg': order.shipping_chrg,
-            'discount': order.discount or 0
-        }
-        orders_data.append(order_data)
+    orders = Order.objects.all().order_by('-created_at')
 
     # Pagination
-    paginator = Paginator(orders_data, 10)  # Show 10 orders per page
+    paginator = Paginator(orders, 10)  # Show 10 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -915,7 +798,6 @@ def logout_admin(request):
 
 @login_required
 def complaints(request):
-    """View to list all complaints with pagination."""
     complaints_list = Complaint.objects.select_related('order_item__order', 'order_item__product')
     paginator = Paginator(complaints_list, 10)  # Show 10 complaints per page
     page_number = request.GET.get('page')
@@ -935,7 +817,6 @@ def update_complaint_status(request, complaint_id):
         complaint.status = new_status
         complaint.save()
 
-        # Update order status based on complaint
         complaint.order_item.order.status = new_status
         complaint.order_item.order.save()
         user = complaint.order_item.order.user
@@ -943,25 +824,21 @@ def update_complaint_status(request, complaint_id):
         # If the complaint is resolved, refund only the specific product's price
         if new_status == 'RESOLVED':
             
-            product_price = (order_item.variant.price) * order_item.quantity # Specific product's price (not total amount)
+            product_price = (order_item.variant.price) * order_item.quantity 
 
-            # Get or create user's wallet
             wallet, created = Wallet.objects.get_or_create(user=user, defaults={'balance': Decimal('0.00')})
 
-            # Add refund amount to wallet
             wallet.balance += product_price
             wallet.save()
 
-            # Log the transaction
             WalletTransaction.objects.create(
                 wallet=wallet,
                 order=order_item.order,
                 amount=product_price,
                 type='CREDIT'
             )
-            # email = order_item.order.user.email
             send_mail(
-                subject="Complaint Resolved - Refund Issued",  # Email subject
+                subject="Complaint Resolved - Refund Issued",
                 message=(
                     f"Dear {user.username},\n\n"
                     f"Your complaint regarding the product '{order_item.product.name}' has been resolved. "
@@ -969,8 +846,8 @@ def update_complaint_status(request, complaint_id):
                     f"Thank you for your patience.\n\n"
                     f"Best Regards,\nFresh 2 Home Support Team"
                 ),
-                from_email='support@fresh2home.com',  # Replace with your support email
-                recipient_list=[user.email],  # User's email
+                from_email='support@fresh2home.com',
+                recipient_list=[user.email],
                 fail_silently=False,
             )
 
@@ -986,7 +863,7 @@ def update_complaint_status(request, complaint_id):
                     f"If you have any further concerns, please contact our support team.\n\n"
                     f"Best Regards,\nFresh 2 Home Support Team"
                 ),
-                from_email='support@fresh2home.com',  # Replace with your support email
+                from_email='support@fresh2home.com',
                 recipient_list=[user.email],
                 fail_silently=False,
             )
@@ -1004,7 +881,6 @@ def delete_complaint(request, complaint_id):
     return redirect('complaints')
 
 def resolve_complaint(request, complaint_id):
-    """Marks the complaint as resolved and refunds the specific product price to the user's wallet."""
     
     complaint = get_object_or_404(Complaint, id=complaint_id)
     
@@ -1013,16 +889,13 @@ def resolve_complaint(request, complaint_id):
         messages.warning(request, "This complaint has already been resolved.")
         return redirect('complaints_list')
     
-    user_wallet = Wallet.objects.get(user=complaint.user)  # Get the user's wallet
+    user_wallet = Wallet.objects.get(user=complaint.user)
     
-    # Refund only the price of the specific complained product
     refund_amount = Decimal(complaint.order_item.variant.price) * Decimal(complaint.order_item.quantity)
 
-    # Update the wallet balance
     user_wallet.balance += refund_amount
     user_wallet.save()
 
-    # Create a wallet transaction record
     WalletTransaction.objects.create(
         wallet=user_wallet,
         order=complaint.order_item.order,
@@ -1030,7 +903,6 @@ def resolve_complaint(request, complaint_id):
         type='CREDIT'
     )
 
-    # Update the complaint status to "RESOLVED"
     complaint.status = 'RESOLVED'
     complaint.save()
 

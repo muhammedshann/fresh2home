@@ -6,6 +6,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+import uuid
 
 class User(AbstractUser):
     first_name = None
@@ -24,6 +27,10 @@ class User(AbstractUser):
         db_table = 'users'
         ordering = ['created_at']
 
+@receiver(pre_save, sender=User)
+def generate_referral_id(sender, instance, **kwargs):
+    if not instance.referral_id:  # Generate only if it's empty
+        instance.referral_id = instance.username[:3].upper() + uuid.uuid4().hex[:6].upper()
 
 class Address(models.Model):
     ADDRESS_TYPES = [
