@@ -58,6 +58,7 @@ class Address(models.Model):
 class Category(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
+    discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=False)
 
@@ -71,6 +72,7 @@ class Products(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     available_quantity = models.IntegerField()
     description = models.TextField()
+    discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=False)
@@ -168,7 +170,7 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     shipping_chrg = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    coupon_code = models.CharField(max_length=10,null=True)
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True)
     net_amount = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -298,7 +300,7 @@ class Payment(models.Model):
         ('CREDIT_CARD', 'Credit Card'),
         ('DEBIT_CARD', 'Debit Card'),
         ('WALLET', 'Wallet'),
-        ('COD', 'Cash on Delivery')
+        ('COD', 'Cash on Delivery') 
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -381,6 +383,7 @@ class Complaint(models.Model):
 
     order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name="complaints")
     description = models.TextField()
+    image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -67,54 +67,44 @@
                     <tr class="align-middle fs-sm">
                         <td class="py-1">{{ forloop.counter }}</td>
                         <td>
-                            <div>
-                                {% for item in order.order_items %}
-                                    <div class="fw-500 text-truncate" style="max-width: 200px;">{{ item.product_name }}</div>
-                                    <div class="text-muted fs-xs">ID: #{{ order.id }}</div>
-                                {% endfor %}
-                            </div>
+                            {% for item in order.items.all %}
+                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ item.product.name }} x {{ item.quantity }}</div>
+                            <div class="text-muted fs-xs">ID: #{{ order.id }}</div>
+                            {% endfor %}
                         </td>
+                        <td class="py-1">{{ order.user.username }}</td>
                         <td class="py-1">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ order.user_name }}</div>
+                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ order.address.city }}, {{ order.address.pin_code }},{{ order.address.district }}</div>
                         </td>
+                        <td class="py-1">{{ order.order_date|date:"d M Y" }}</td>
                         <td class="py-1">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ order.address }}</div>
-                        </td>
-                        <td class="py-1">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ order.order_date|date:"d M Y" }}</div>
+                            {% if order.payment %}
+                                <div class="border-bottom pb-1 mb-1">
+                                    <strong>Status:</strong> {{ order.payment.status|upper }} <br>
+                                    <strong>Amount:</strong> ₹{{ order.payment.amount|floatformat:2 }} <br>
+                                    <strong>Method:</strong> {{ order.payment.get_method_display }} <br>
+                                    <strong>Date:</strong> {{ order.payment.date|date:"d M Y H:i" }}
+                                </div>
+                            {% else %}
+                                <div class="text-danger small">No payment records found</div>
+                            {% endif %}
                         </td>
                         <td class="py-1">
                             <form method="post" action="{% url 'update_order_status' order.id %}">
                                 {% csrf_token %}
                                 <select class="form-select status-select" name="status" onchange="this.form.submit()">
-                                    <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
-                                    <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
-                                    <option value="SHIPPED" {% if order.status == 'SHIPPED' %}selected{% endif %}>Shipped</option>
-                                    <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
-                                    <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                                    {% for status, display in order.STATUS_CHOICES %}
+                                        <option value="{{ status }}" {% if order.status == status %}selected{% endif %}>
+                                            {{ display }}
+                                        </option>
+                                    {% endfor %}
                                 </select>
                             </form>
-                        </td>
-                        <td class="py-1">
-                            {% for payment in order.payments.all %}
-                            <div class="border-bottom pb-1 mb-1">
-                                <strong>Status:</strong> {{ payment.status|upper }} <br>
-                                <strong>Amount:</strong> ₹{{ payment.amount|floatformat:2 }} <br>
-                                <strong>Method:</strong> {{ payment.get_method_display }} <br>
-                                <strong>Date:</strong> {{ payment.date|date:"d M Y H:i" }}
-                            </div>
-                            {% empty %}
-                            <div class="text-danger small">No payment records found</div>
-                            {% endfor %}
                         </td>
                         <td class="py-1">
                             <div class="fw-500 text-truncate" style="max-width: 200px;">{{ order.cancellation_reason }}</div>
                         </td>
                         <td class="py-1 text-end">
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
-                                data-bs-target="#">
-                                Edit
-                            </button>
                             <form method="POST" action="{% url 'delete_order' order.id %}"
                                 style="display:inline;">
                                 {% csrf_token %}

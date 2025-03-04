@@ -10,29 +10,24 @@
         padding-bottom: 1rem;
         margin-bottom: 1rem;
     }
-
     .order-item:last-child,
     .address-item:last-child {
         border-bottom: none;
     }
-
     .product-image {
         width: 60px;
         height: 60px;
         object-fit: cover;
     }
-
     .profile-section {
         background-color: #f8f9fa;
         border-radius: 10px;
         padding: 20px;
         margin-bottom: 20px;
     }
-
     .nav-pills .nav-link.active {
         background-color: #007bff;
     }
-
     .form-control:focus {
         border-color: #007bff;
         box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
@@ -43,12 +38,12 @@
 {% block content %}
 
 {% if messages %}
-{% for message in messages %}
-<div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
-    {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-{% endfor %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
 {% endif %}
 
 <div class="container py-5">
@@ -83,14 +78,7 @@
                             </span>
                         </div>
                     </div> 
-                
-                    <form id="razorpayForm" action="{% url 'payment_callback' %}" method="POST" style="display:none;">
-                        {% csrf_token %}
-                        <input type="hidden" id="razorpay_payment_id" name="razorpay_payment_id">
-                        <input type="hidden" id="razorpay_order_id" name="razorpay_order_id">
-                        <input type="hidden" id="razorpay_signature" name="razorpay_signature">
-                    </form>
-                    <!-- <a href="{% url 'add_money' %}" id="addMoneyForm" class="btn btn-outline-primary btn-sm">Add Money</a> -->
+                    <!-- Hidden form is no longer needed since we are using AJAX -->
                 </div>
             </div>
         </div>
@@ -101,188 +89,192 @@
                 <div class="card-header bg-light">
                     <ul class="nav nav-pills card-header-pills">
                         <li class="nav-item">
-                            <a class="nav-link {% if active_tab == 'profile' %}active{% endif %}"
-                                href="{% url 'profile' %}?tab=profile">Profile</a>
+                            <a class="nav-link {% if active_tab == 'profile' %}active{% endif %}" href="{% url 'profile' %}?tab=profile">Profile</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if active_tab == 'addresses' %}active{% endif %}"
-                                href="{% url 'profile' %}?tab=addresses">Addresses</a>
+                            <a class="nav-link {% if active_tab == 'addresses' %}active{% endif %}" href="{% url 'profile' %}?tab=addresses">Addresses</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if active_tab == 'orders' %}active{% endif %}"
-                                href="{% url 'profile' %}?tab=orders">Orders</a>
+                            <a class="nav-link {% if active_tab == 'orders' %}active{% endif %}" href="{% url 'profile' %}?tab=orders">Orders</a>
                         </li>
                     </ul>
                 </div>
                 <div class="card-body">
                     {% if active_tab == 'profile' %}
-                    <h5 class="mb-3">Edit Profile</h5>
-                    <form action="{% url 'edit_profile' %}" method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{ user.username }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone_no" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone_no" name="phone_no" value="{{ user.phone_no }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="profile" class="form-label">Profile Image</label>
-                            <input type="file" class="form-control" id="profile" name="profile" accept="image/*">
-                            <small class="form-text text-muted">Upload a profile image (optional).</small>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Update Profile</button>
-                    </form>
-                    <hr>
-                    <h5 class="mb-3">Change Password</h5>
-                    <form action="{% url 'change_password' %}" method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="current_password" class="form-label">Current Password</label>
-                            <input type="password" class="form-control" id="current_password" name="current_password"
-                                required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="new_password" class="form-label">New Password</label>
-                            <input type="password" class="form-control" id="new_password" name="new_password" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="confirm_password" class="form-label">Confirm New Password</label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password"
-                                required>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Change Password</button>
-                    </form>
+                        <h5 class="mb-3">Edit Profile</h5>
+                        <form action="{% url 'edit_profile' %}" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ user.username }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone_no" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone_no" name="phone_no" value="{{ user.phone_no }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="profile" class="form-label">Profile Image</label>
+                                <input type="file" class="form-control" id="profile" name="profile" accept="image/*">
+                                <small class="form-text text-muted">Upload a profile image (optional).</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </form>
+                        <hr>
+                        <h5 class="mb-3">Change Password</h5>
+                        <form action="{% url 'change_password' %}" method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Change Password</button>
+                        </form>
                     {% elif active_tab == 'addresses' %}
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">Saved Addresses</h5>
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
-                            data-bs-target="#addAddressModal">
-                            <i class="bi bi-plus-circle me-1"></i> Add New Address
-                        </button>
-                    </div>
-                    {% for address in addresses %}
-                    <div class="address-item">
-                        <div class="row align-items-center">
-                            <div class="col-md-4">
-                                <h6 class="mb-0">{{ address.name }}</h6>
-                                <p class="text-muted mb-0 small">{{ address.mobile_number }}</p>
-                            </div>
-                            <div class="col-md-4">
-                                <span class="badge bg-light text-dark">{{ address.address_type }}</span>
-                            </div>
-                            <div class="col-md-4 text-md-end">
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                                    data-bs-target="#editAddressModal{{ address.id }}">
-                                    <i class="bi bi-pencil-square me-1"></i> Edit
-                                </button>
-                                <form action="{% url 'delete_address' address.id %}" method="post"
-                                    style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                                        <i class="bi bi-trash me-1"></i> Delete
-                                    </button>
-                                </form>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Saved Addresses</h5>
+                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                                <i class="bi bi-plus-circle me-1"></i> Add New Address
+                            </button>
                         </div>
-                        <div class="mt-2">
-                            <p class="mb-1">{{ address.land_mark }}</p>
-                            <p class="mb-1">{{ address.city }}, {{ address.district }}</p>
-                            <p class="mb-1">{{ address.state }} - {{ address.pin_code }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% elif active_tab == 'orders' %}
-                    <h5 class="mb-3">Recent Orders</h5>
-                    {% if orders %}
-                        {% for order in orders %}
-                        <div class="order-item mb-3">
-                            <div class="row align-items-center">
-                                <div class="col-md-3">
-                                    <h6 class="mb-0">Order #{{ order.id }}</h6>
-                                    <p class="text-muted mb-0 small">{{ order.order_date|date:"M d, Y" }}</p>
-                                </div>
-                                <div class="col-md-3">
-                                    
-                                    <span class="badge bg-{{ order.status|lower }}">{{ order.status }}</span>
-                                </div>
-                                <div class="col-md-3 text-md-end">
-                                    <p class="mb-0"><strong>Total:</strong> ₹{{ order.net_amount }}</p>
-                                </div>
-                                <div class="col-md-3 text-md-end">
-                                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse"
-                                        data-bs-target="#orderDetails{{ order.id }}">
-                                        View Details
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="collapse mt-3" id="orderDetails{{ order.id }}">
-                                <div class="card card-body">
-                                    <h6 class="mb-3">Order Items</h6>
-                                    {% if order.items.all %}
-                                        {% for item in order.items.all %}
-                                        <div class="d-flex align-items-center mb-2">
-                                            {% if item.product.images.first %}
-                                            <img src="{{ item.product.images.first.image_url.url }}" class="product-image me-3"
-                                                alt="{{ item.product.name }}">
-                                            {% else %}
-                                            <img src="{% static 'images/default-product-image.jpg' %}"
-                                                class="product-image me-3" alt="No Image Available">
-                                            {% endif %}
-                                            <div>
-                                                <h6 class="mb-0">{{ item.product.name }}</h6>
-                                                <p class="mb-0 small">Quantity: {{ item.quantity }} x ₹{{ item.variant.price }}</p>
-                                                <p class="mb-0 small">Total: ₹{{ item.total_amount }}</p>
-                                            </div>                                            
-                                        </div>
-                                        {% endfor %}
-                                        <p class="mb-0 medium text-success"><span class="text-dark"><strong>Address:</strong></span>{{ order.address.name }}, {{ order.address.pin_code }}, {{ order.address.city }}, {{ order.address.district }}, {{ order.address.state }}, {{ order.address.address_type }}, {{ order.address.mobile_number }}</p>
-                                    {% else %}
-                                        <p>No items in this order.</p>
-                                    {% endif %}
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-sm-3">
-                                            <p class="mb-0 small"><strong>Shipping:</strong> ₹{{ order.shipping_chrg }}</p>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <p class="mb-0 small"><strong>Discount:</strong> ₹{{ order.discount|default:"0" }}</p>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <p class="mb-0 small"><strong>Total:</strong> ₹{{ order.total }}</p>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <a href="{% url 'download_invoice' order.id %}" class="btn btn-dark download-invoice-btn">
-                                                <i class="bi bi-file-earmark-arrow-down"></i>
-                                                Download Invoice
-                                            </a>
-                                        </div>
-                                        
+                        {% for address in addresses %}
+                            <div class="address-item">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <h6 class="mb-0">{{ address.name }}</h6>
+                                        <p class="text-muted mb-0 small">{{ address.mobile_number }}</p>
                                     </div>
-                                    {% if order.status == 'DELIVERED' %}
-                                        <hr>
-                                        <a href="{% url 'cancel_order' order.id %}?action=report" class="text-danger">Report an Issue</a>
-                                    {% elif order.status == 'CANCELLED' %}
-                                        <p class="text-danger mt-2"><strong>This order has been cancelled.</strong></p>
-                                    {% elif order.items.all.0.complaints.exists %}
-                                        <p class="text-primary mt-2"><strong>Your complaint has been solved.</strong></p>
-                                    {% else %}
-                                        <hr>
-                                        <a href="{% url 'cancel_order' order.id %}?action=cancel" class="btn btn-danger w-100">Cancel Order</a>
-                                    {% endif %}
+                                    <div class="col-md-4">
+                                        <span class="badge bg-light text-dark">{{ address.address_type }}</span>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editAddressModal{{ address.id }}">
+                                            <i class="bi bi-pencil-square me-1"></i> Edit
+                                        </button>
+                                        <form action="{% url 'delete_address' address.id %}" method="post" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                <i class="bi bi-trash me-1"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <p class="mb-1">{{ address.land_mark }}</p>
+                                    <p class="mb-1">{{ address.city }}, {{ address.district }}</p>
+                                    <p class="mb-1">{{ address.state }} - {{ address.pin_code }}</p>
                                 </div>
                             </div>
-                        </div>
                         {% endfor %}
-                    {% else %}
-                        <p>No orders found.</p>
-                    {% endif %}
+                    {% elif active_tab == 'orders' %}
+                        <h5 class="mb-3">Recent Orders</h5>
+                        {% if orders %}
+                            {% for order in orders %}
+                                <div class="order-item mb-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <h6 class="mb-0">Order #{{ order.id }}</h6>
+                                            <p class="text-muted mb-0 small">{{ order.order_date|date:"M d, Y" }}</p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge bg-{{ order.status|lower }}">{{ order.status }}</span>
+                                        </div>
+                                        <div class="col-md-3 text-md-end">
+                                            <p class="mb-0"><strong>Total:</strong> ₹{{ order.net_amount }}</p>
+                                        </div>
+                                        <div class="col-md-3 text-md-end">
+                                            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#orderDetails{{ order.id }}">
+                                                View Details
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="collapse mt-3" id="orderDetails{{ order.id }}">
+                                        <div class="card card-body">
+                                            <h6 class="mb-3">Order Items</h6>
+                                            {% if order.items.all %}
+                                                {% for item in order.items.all %}
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        {% if item.product.images.first %}
+                                                            <img src="{{ item.product.images.first.image_url.url }}" class="product-image me-3" alt="{{ item.product.name }}">
+                                                        {% else %}
+                                                            <img src="{% static 'images/default-product-image.jpg' %}" class="product-image me-3" alt="No Image Available">
+                                                        {% endif %}
+                                                        <div>
+                                                            <h6 class="mb-0">{{ item.product.name }}</h6>
+                                                            <p class="mb-0 small">Quantity: {{ item.quantity }} x ₹{{ item.variant.price }}</p>
+                                                            <p class="mb-0 small">Total: ₹{{ item.total_amount }}</p>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                                <p class="mb-0 medium text-success">
+                                                    <span class="text-dark"><strong>Address:</strong></span>
+                                                    {{ order.address.name }}, {{ order.address.pin_code }}, {{ order.address.city }}, {{ order.address.district }}, {{ order.address.state }}, {{ order.address.address_type }}, {{ order.address.mobile_number }}
+                                                </p>
+                                                <p class="mb-0 medium text-success">
+                                                    <span class="text-dark"><strong>Payment details:</strong></span><br>
+                                                    {{ order.payment.method }} <span class="text-dark"><strong>Payment</strong></span><br>       
+                                                    <span class="text-dark"><strong>On: </strong></span> {{ order.payment.date }}<br>
+                                                </p>                                                
+                                            {% else %}
+                                                <p>No items in this order.</p>
+                                            {% endif %}
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-sm-3">
+                                                    <p class="mb-0 small"><strong>Shipping:</strong> ₹{{ order.shipping_chrg }}</p>
+                                                </div>
+                                                <div class="col-sm-3">
+                                                    <p class="mb-0 small"><strong>Discount:</strong> ₹{{ order.discount|default:"0" }}</p>
+                                                </div>
+                                                <div class="col-sm-3">
+                                                    <p class="mb-0 small"><strong>Total:</strong> ₹{{ order.total }}</p>
+                                                </div>
+                                                <div class="col-sm-3">
+                                                    <a href="{% url 'download_invoice' order.id %}" class="btn btn-dark download-invoice-btn">
+                                                        <i class="bi bi-file-earmark-arrow-down"></i> Download Invoice
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            {% if order.status == 'DELIVERED' %}
+                                                <hr>
+                                                <a href="{% url 'cancel_order' order.id %}?action=report" class="text-danger">Report an Issue</a>
+                                            {% elif order.status == 'CANCELLED' %}
+                                                <p class="text-danger mt-2"><strong>This order has been cancelled.</strong></p>
+                                            {% elif order.items.all.0.complaints.exists %}
+                                                <p class="text-primary mt-2"><strong>Your complaint has been solved.</strong></p>
+                                            {% else %}
+                                                <hr>
+                                                <a href="{% url 'cancel_order' order.id %}?action=cancel" class="btn btn-danger w-100">Cancel Order</a>
+                                            {% endif %}
+
+                                            {# Repayment Button for pending or failed credit/debit card payments #}
+                                            {% if order.payment %}
+                                                {% if order.payment.method == "creditCard" or order.payment.method == "debitCard" %}
+                                                    {% if order.payment.status == "PENDING" or order.payment.status == "FAILED" %}
+                                                        <hr>
+                                                        <a href="javascript:void(0);" onclick="repayOrder({{ order.id }})" class="btn btn-primary w-100">Pay Now</a>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p>No orders found.</p>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -352,10 +344,10 @@
         </div>
     </div>
 </div>
+
 {% for address in addresses %}
 <!-- Edit Address Modal -->
-<div class="modal fade" id="editAddressModal{{ address.id }}" tabindex="-1"
-    aria-labelledby="editAddressModalLabel{{ address.id }}" aria-hidden="true">
+<div class="modal fade" id="editAddressModal{{ address.id }}" tabindex="-1" aria-labelledby="editAddressModalLabel{{ address.id }}" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -367,28 +359,23 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="name{{ address.id }}" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="name{{ address.id }}" name="name"
-                            value="{{ address.name }}" required>
+                        <input type="text" class="form-control" id="name{{ address.id }}" name="name" value="{{ address.name }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="pin_code{{ address.id }}" class="form-label">Pin Code</label>
-                        <input type="text" class="form-control" id="pin_code{{ address.id }}" name="pin_code"
-                            value="{{ address.pin_code }}" required>
+                        <input type="text" class="form-control" id="pin_code{{ address.id }}" name="pin_code" value="{{ address.pin_code }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="city{{ address.id }}" class="form-label">City</label>
-                        <input type="text" class="form-control" id="city{{ address.id }}" name="city"
-                            value="{{ address.city }}" required>
+                        <input type="text" class="form-control" id="city{{ address.id }}" name="city" value="{{ address.city }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="state{{ address.id }}" class="form-label">State</label>
-                        <input type="text" class="form-control" id="state{{ address.id }}" name="state"
-                            value="{{ address.state }}" required>
+                        <input type="text" class="form-control" id="state{{ address.id }}" name="state" value="{{ address.state }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="district{{ address.id }}" class="form-label">District</label>
-                        <input type="text" class="form-control" id="district{{ address.id }}" name="district"
-                            value="{{ address.district }}" required>
+                        <input type="text" class="form-control" id="district{{ address.id }}" name="district" value="{{ address.district }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="address_type{{ address.id }}" class="form-label">Address Type</label>
@@ -400,18 +387,15 @@
                     </div>
                     <div class="mb-3">
                         <label for="land_mark{{ address.id }}" class="form-label">Landmark</label>
-                        <input type="text" class="form-control" id="land_mark{{ address.id }}" name="land_mark"
-                            value="{{ address.land_mark }}">
+                        <input type="text" class="form-control" id="land_mark{{ address.id }}" name="land_mark" value="{{ address.land_mark }}">
                     </div>
                     <div class="mb-3">
                         <label for="mobile_number{{ address.id }}" class="form-label">Mobile Number</label>
-                        <input type="text" class="form-control" id="mobile_number{{ address.id }}" name="mobile_number"
-                            value="{{ address.mobile_number }}" required>
+                        <input type="text" class="form-control" id="mobile_number{{ address.id }}" name="mobile_number" value="{{ address.mobile_number }}" required>
                     </div>
                     <div class="mb-3">
                         <label for="alternate_number{{ address.id }}" class="form-label">Alternate Number</label>
-                        <input type="text" class="form-control" id="alternate_number{{ address.id }}"
-                            name="alternate_number" value="{{ address.alternate_number }}">
+                        <input type="text" class="form-control" id="alternate_number{{ address.id }}" name="alternate_number" value="{{ address.alternate_number }}">
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -423,6 +407,7 @@
     </div>
 </div>
 {% endfor %}
+
 <!-- Profile Edit Modal -->
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -434,18 +419,14 @@
             <div class="modal-body">
                 <form method="post" enctype="multipart/form-data" action="{% url 'edit_profile' %}">
                     {% csrf_token %}
-
                     <div class="mb-3">
                         <label for="profileImage" class="form-label">Profile Image</label>
                         <input type="file" class="form-control" id="profileImage" name="profile" accept="image/*">
                     </div>
-
                     <div class="mb-3">
                         <label for="phone_no" class="form-label">Phone Number</label>
-                        <input type="text" class="form-control" id="phone_no" name="phone_no"
-                            value="{{ user.phone_no }}" required>
+                        <input type="text" class="form-control" id="phone_no" name="phone_no" value="{{ user.phone_no }}" required>
                     </div>
-
                     <div class="mb-3">
                         <label for="is_admin" class="form-label">Admin Status</label>
                         <select class="form-select" id="is_admin" name="is_admin">
@@ -453,7 +434,6 @@
                             <option value="False" {% if not user.is_admin %}selected{% endif %}>User</option>
                         </select>
                     </div>
-
                     <div class="mb-3">
                         <label for="is_verify" class="form-label">Verify Status</label>
                         <select class="form-select" id="is_verify" name="is_verify">
@@ -461,7 +441,6 @@
                             <option value="False" {% if not user.is_verify %}selected{% endif %}>Not Verified</option>
                         </select>
                     </div>
-
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -471,13 +450,13 @@
         </div>
     </div>
 </div>
+
 {% block script %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
     function initiatePayment() {
         const amount = document.getElementById('amount').value;
-
-        // Make an AJAX request to create a Razorpay order
+        // AJAX request to add money (wallet top-up)
         fetch("{% url 'add_money' %}", {
             method: 'POST',
             headers: {
@@ -498,14 +477,15 @@
             key: '{{ settings.RAZORPAY_KEY_ID }}', // Your Razorpay Key ID
             amount: data.amount, // Amount in paise
             currency: data.currency,
-            order_id: data.id, // Use the order ID returned from Razorpay
+            order_id: data.id, // Razorpay order ID returned from backend
             name: 'Fresh2Home',
-            description: 'Order Payment',
+            description: 'Wallet Top-Up',
             handler: function(response) {
+                // Fill in the hidden form and submit to your payment callback URL
                 document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
                 document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
                 document.getElementById('razorpay_signature').value = response.razorpay_signature;
-                document.getElementById('razorpayForm').submit(); // Submit the form to your server
+                document.getElementById('razorpayForm').submit();
             },
             prefill: {
                 name: '{{ request.user.get_full_name }}',
@@ -516,9 +496,82 @@
                 color: '#3399cc'
             }
         };
-        
         const rzp = new Razorpay(options);
         rzp.open();
+    }
+
+    // Repayment function: initiates a new payment for an order on the same page.
+    function repayOrder(orderId) {
+        // AJAX POST to initiate repayment and get new Razorpay order details
+        fetch("{% url 'initiate_repayment_ajax' 0 %}".replace('0', orderId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ order_id: orderId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                var options = {
+                    key: '{{ settings.RAZORPAY_KEY_ID }}',
+                    amount: data.amount, // in paise
+                    currency: data.currency,
+                    order_id: data.id,
+                    name: 'Fresh2Home',
+                    description: 'Repayment for Order #' + orderId,
+                    handler: function(response) {
+                        // Update payment status via AJAX call
+                        updatePaymentStatus(response, orderId);
+                    },
+                    prefill: {
+                        name: '{{ request.user.get_full_name }}',
+                        email: '{{ request.user.email }}',
+                        contact: '{{ request.user.profile.phone_number|default:"" }}'
+                    },
+                    theme: {
+                        color: '#3399cc'
+                    }
+                };
+                var rzp = new Razorpay(options);
+                rzp.open();
+            } else {
+                alert("Error initiating repayment: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error initiating repayment:', error);
+        });
+    }
+
+    // Function to update payment status on the backend after Razorpay checkout
+    function updatePaymentStatus(response, orderId) {
+        fetch("{% url 'ajax_razorpay_callback' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                order_id: orderId
+            })
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert("Payment successful. Order updated.");
+                location.reload();
+            } else {
+                alert("Payment update failed: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating payment status:', error);
+        });
     }
 </script>
 {% endblock %}

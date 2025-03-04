@@ -43,11 +43,16 @@
                                 <i class="bi bi-people"></i> Customers
                             </a>
                         </li>
-                        {% comment %} <li class="nav-item">
-                            <a href="{% url 'reviews' %}" class="nav-link {% if request.resolver_match.url_name == 'reviews' %}active{% endif %}">
-                                <i class="bi bi-star"></i> Reviews
+                        <li class="nav-item">
+                            <a href="{% url 'wallet' %}" class="nav-link {% if request.resolver_match.url_name == 'wallet' %}active{% endif %}">
+                                <i class="bi bi-star"></i> wallet
                             </a>
-                        </li> {% endcomment %}
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'transactions' %}" class="nav-link {% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">
+                                <i class="bi bi-star"></i> Transaction
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a href="{% url 'offers' %}" class="nav-link {% if request.resolver_match.url_name == 'offers' %}active{% endif %}">
                                 <i class="bi bi-gift"></i> Offers

@@ -55,6 +55,8 @@ urlpatterns = [
     path('payment/', views.order_success, name='order_success'),
     path('add-money/', views.add_money, name='add_money'),
     path('payment-callback/', views.payment_callback, name='payment_callback'),
+    path('orders/initiate_repayment_ajax/<int:order_id>/', views.initiate_repayment_ajax, name='initiate_repayment_ajax'),
+    path('orders/ajax_razorpay_callback/', views.ajax_razorpay_callback, name='ajax_razorpay_callback'),
 
     # Referral System
     path('ref/<str:referral_id>/', views.referral_signup, name='referral_signup'),

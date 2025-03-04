@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate, login , logout
 from django.contrib import messages
 from django.http import JsonResponse
 from decimal import Decimal, InvalidOperation
-from user_side.models import Products , Category ,ProductImage , User , Review,Banner,Order,OrderItem,ProductVariant,Coupon,Store,Complaint,WalletTransaction,Wallet,Address
+from user_side.models import Products , Category ,ProductImage , User , Review,Banner,Order,OrderItem,ProductVariant,Coupon,Store,Complaint,WalletTransaction,Wallet,Address,Transaction
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.utils import timezone
@@ -78,7 +78,7 @@ def sales_report(request):
         'total_orders': orders.count(),
         'total_sales': orders.aggregate(total=Sum('net_amount'))['total'] or 0,
         'total_discount': orders.aggregate(total=Sum('discount'))['total'] or 0,
-        'coupon_orders': orders.exclude(coupon_code__isnull=True).count(),
+        'coupon_orders': orders.exclude(coupon__isnull=True).count(),
     }
 
     # Handle download requests
@@ -399,28 +399,6 @@ def add_product(request):
 
     return redirect("add_products")
 
-# @login_required
-# def product_list(request):
-#     if not request.user.is_superuser and not request.user.is_staff:
-#         return redirect('homepage') 
-
-#     products = Products.objects.all().prefetch_related('images', 'variants')
-#     categories = Category.objects.all()
-
-#     page_number = request.GET.get('page')
-#     paginator = Paginator(products, 11)  # Show 10 products per page
-#     page_obj = paginator.get_page(page_number)
-#     print('sdfghjk')
-#     print(f"Total pages: {paginator.num_pages}")
-
-
-#     context = {
-#         'products': page_obj,
-#         'categories': categories,
-#     }
-
-#     return render(request, 'products.html', context)
-
 def delete_product(request, product_id):
     product = get_object_or_404(Products, id=product_id)
     
@@ -444,6 +422,7 @@ def edit_product(request, product_id):
             price = request.POST.get("price")
             available_quantity = request.POST.get("available_quantity")
             description = request.POST.get("description")
+            discount = request.POST.get("discount")
             images = request.FILES.getlist("image")
 
             # Get existing variant data
@@ -465,6 +444,7 @@ def edit_product(request, product_id):
             product.price = price
             product.available_quantity = available_quantity
             product.description = description
+            product.discount = discount
             product.save()
 
             if images:
@@ -511,7 +491,12 @@ def delete_image(request, image_id):
 @never_cache
 @login_required
 def admin_orders(request):
-    orders = Order.objects.all().order_by('-created_at')
+    orders = (
+        Order.objects
+        .select_related("user", "address")
+        .prefetch_related("items__product", "payment")
+        .all()
+    )
 
     # Pagination
     paginator = Paginator(orders, 10)  # Show 10 orders per page
@@ -779,9 +764,11 @@ def edit_category(request, category_id):
     if request.method == 'POST':
         name = request.POST.get('name')
         description = request.POST.get('description')
+        discount = request.POST.get("discount")
 
         category.name = name
         category.description = description
+        category.discount = float(discount) if discount else None
         category.save()
 
         messages.success(request, 'Category updated successfully!')
@@ -908,3 +895,11 @@ def resolve_complaint(request, complaint_id):
 
     messages.success(request, f"₹{refund_amount} refunded to {user_wallet.user.username}'s wallet for the complained product.")
     return redirect('complaints_list')
+
+def wallet(request):
+    wallet = WalletTransaction.objects.all()
+    return render(request,'wallet.html',{ 'wallets': wallet })
+
+def transactions(request):
+    transaction = Transaction.objects.all()
+    return render(request,'transaction.html',{ 'transaction': transaction })

@@ -47,6 +47,8 @@ urlpatterns = [
     path('complaints/', views.complaints, name='complaints_list'),
     path('complaints/update/<int:complaint_id>/', views.update_complaint_status, name='update_complaint_status'),
     path('complaints/delete/<int:complaint_id>/', views.delete_complaint, name='delete_complaint'),
+    path('wallet/', views.wallet, name='wallet'),
+    path('admin/transaction/', views.transactions, name='transactions'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
