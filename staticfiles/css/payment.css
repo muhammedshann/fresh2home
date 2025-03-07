@@ -1,0 +1,111 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.main {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    margin-top: 50px;
+    margin-bottom: 50px;
+}
+
+
+h1 {
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+}
+
+h2.h4 {
+    color: #495057;
+    margin-top: 25px;
+    margin-bottom: 15px;
+}
+
+/* Styles for address cards */
+.address-card {
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.address-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.address-card.selected {
+    border: 2px solid #007bff;
+    background-color: #e7f5ff;
+}
+
+/* Styles for payment method selection */
+.form-check {
+    margin-bottom: 10px;
+}
+
+.form-check-input:checked+.form-check-label {
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Styles for coupon input */
+.input-group {
+    margin-bottom: 20px;
+}
+
+/* Styles for order summary table */
+.table {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.table th,
+.table td {
+    vertical-align: middle;
+}
+
+/* Styles for buttons */
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Styles for form inputs */
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    h2.h4 {
+        font-size: 20px;
+    }
+}
+.address-card {
+    cursor: pointer;
+}
+.address-card.selected {
+    border: 2px solid #007bff;
+}
