@@ -20,8 +20,8 @@ from django.http import HttpResponse,HttpResponseRedirect,JsonResponse
 from django.db import transaction
 import re,json
 from django.template.loader import render_to_string
-# from weasyprint import HTML
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from django.db.models import ProtectedError
 from django.contrib.auth import logout
@@ -29,8 +29,6 @@ import razorpay,uuid
 from reportlab.pdfgen import canvas
 from xhtml2pdf import pisa
 from django.template.loader import get_template
-from django.contrib.auth.forms import PasswordResetForm
-
 
 
 def send_otp_email(request):
@@ -182,19 +180,6 @@ def signup(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
-
-
-# @never_cache
-# def loading_page(request):
-#     products = Products.objects.prefetch_related('images')
-#     category = Category.objects.all()
-#     banners = Banner.objects.all()
-#     context = {
-#         'products': products,
-#         'category': category,
-#         'banners': banners
-#     }
-#     return render(request,'home_page.html',context)
 
 @never_cache
 def homepage(request):
@@ -857,7 +842,6 @@ def checkout(request):
                         messages.error(request, f'Out of stock: {item.product.name}')
                         return redirect('cart_view')
 
-                # COD Payment: create order, reduce stock, clear cart immediately
                 if payment_method == 'cod':
                     if total_amount > 1000:
                         return JsonResponse({'error': 'COD not available for orders over ₹1000'}, status=400)
@@ -901,7 +885,6 @@ def checkout(request):
                             'redirect_url': reverse('order_success')
                         })
 
-                # Wallet Payment: similar to COD, process immediately
                 elif payment_method == 'wallet':
                     try:
                         wallet = Wallet.objects.get(user=request.user)
@@ -973,7 +956,7 @@ def checkout(request):
                 elif payment_method in ['creditCard', 'debitCard']:
                     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
                     razorpay_order = client.order.create({
-                        'amount': int(total_amount * 100),  # amount in paise
+                        'amount': int(total_amount * 100),
                         'currency': 'INR',
                         'payment_capture': '1'
                     })
@@ -987,7 +970,6 @@ def checkout(request):
                             coupon=coupon,
                             razorpay_order_id=razorpay_order['id']
                         )
-                        # Create the order immediately with status "PENDING"
                         order = create_order(
                             user=request.user,
                             address_id=address_id,
@@ -1008,8 +990,6 @@ def checkout(request):
                             date=timezone.now()
                         )
 
-                        # For Razorpay, do not reduce stock or clear the cart here.
-                        # That will be handled in the callback after payment verification.
                         return JsonResponse({
                             'status': 'success',
                             'razorpay_order_id': razorpay_order['id'],
@@ -1026,7 +1006,6 @@ def checkout(request):
             print(f"Checkout Error: {str(e)}")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-    # For GET requests, render the checkout page with context.
     try:
         cart = Cart.objects.get(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
@@ -1060,10 +1039,6 @@ def checkout(request):
 
 
 def create_order(user, address_id, total, shipping_charge, cart_items, coupon, discount=None, payment=None, net_amount=0,status='PENDING'):
-    """
-    Creates an order and its order items, sends a confirmation email,
-    updates coupon usage, and handles referral rewards if applicable.
-    """
     with transaction.atomic():
         order = Order.objects.create(
             user=user,
@@ -1133,12 +1108,6 @@ def create_order(user, address_id, total, shipping_charge, cart_items, coupon, d
 
 @csrf_exempt
 def razorpay_callback(request):
-    """
-    Razorpay callback view updates the payment and order status.
-    If verification is successful, it updates the status to 'SUCCESS'
-    and then sets the order status to 'CONFIRMED' while reducing stock and clearing the cart.
-    If verification fails, the order status is updated to 'FAILED'.
-    """
     if request.method == "POST":
         try:
             payment_id = request.POST.get('razorpay_payment_id', '')
@@ -1152,6 +1121,8 @@ def razorpay_callback(request):
                 'razorpay_signature': signature
             }
             payment = Payment.objects.get(razorpay_order_id=razorpay_order_id)
+            transaction = Transaction.objects.get(payment=payment)
+            print('1')
             try:
                 client.utility.verify_payment_signature(params_dict)
                 payment.status = 'SUCCESS'
@@ -1161,6 +1132,7 @@ def razorpay_callback(request):
                 transaction.status='SUCCESS'
 
                 verified = True
+                print('2')
             except Exception as e:
                 payment.status = 'FAILED'
                 transaction.status='FAILED'
@@ -1170,13 +1142,12 @@ def razorpay_callback(request):
 
             # Retrieve the order linked to this payment.
             order = Order.objects.get(payment=payment)
-            transaction = Transaction.objects.get(payment=payment)
 
             if verified:
                 order.status = 'CONFIRMED'
                 order.save()
                 
-
+                print('3')
                 # Reduce stock and clear cart items upon successful payment.
                 cart = Cart.objects.get(user=payment.user)
                 cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
@@ -1203,10 +1174,7 @@ def razorpay_callback(request):
 @require_POST
 @login_required
 def initiate_repayment_ajax(request, order_id):
-    """
-    Creates a new Razorpay order for a given order and updates the Payment record.
-    Expects a POST request and returns JSON with new Razorpay order details.
-    """
+
     try:
         # Retrieve the order and its payment record (ensure order belongs to the user)
         order = get_object_or_404(Order, id=order_id, user=request.user)
@@ -1243,11 +1211,7 @@ def initiate_repayment_ajax(request, order_id):
 @require_POST
 @login_required
 def ajax_razorpay_callback(request):
-    """
-    Receives Razorpay payment details via AJAX, verifies the signature,
-    updates the Payment and Order statuses accordingly, and if successful,
-    reduces the available quantity of products and clears the user's cart.
-    """
+
     try:
         data = json.loads(request.body)
         razorpay_payment_id = data.get('razorpay_payment_id')
@@ -1387,16 +1351,39 @@ def download_invoice(request,order_id):
     
     return response
 
+@login_required
+@csrf_protect
+@require_POST
 def add_money(request):
-    if request.method == 'POST':
+    try:
+        # Parse JSON data
         data = json.loads(request.body)
-        amount = int(data['amount']) * 100 
+        
+        # Validate amount
+        amount = Decimal(data.get('amount', 0))
+        if amount <= 0:
+            return JsonResponse({
+                'error': 'Invalid amount. Amount must be greater than zero.'
+            }, status=400)
 
-        # Store the amount in session
-        request.session['amount'] = amount
+        # Convert to paise
+        amount_in_paise = int(amount * 100)
 
-        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-        payment_order = client.order.create({'amount': amount, 'currency': 'INR', 'payment_capture': '1'})
+        # Create Razorpay client
+        client = razorpay.Client(
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+
+        # Create payment order
+        payment_order = client.order.create({
+            'amount': amount_in_paise, 
+            'currency': 'INR', 
+            'payment_capture': '1'
+        })
+
+        # Store order details temporarily in session
+        request.session['wallet_top_up_amount'] = float(amount)
+        request.session['razorpay_order_id'] = payment_order['id']
 
         return JsonResponse({
             'id': payment_order['id'],
@@ -1404,46 +1391,86 @@ def add_money(request):
             'currency': payment_order['currency']
         })
 
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    except (ValueError, TypeError, KeyError) as e:
+        return JsonResponse({
+            'error': f'Invalid input: {str(e)}'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Unexpected error: {str(e)}'
+        }, status=500)
 
-@csrf_exempt
+@login_required
+@csrf_protect
+@require_POST
 def payment_callback(request):
-    if request.method == 'POST':
-        razorpay_order_id = request.POST.get('razorpay_order_id')
-        razorpay_payment_id = request.POST.get('razorpay_payment_id')
-        razorpay_signature = request.POST.get('razorpay_signature')
+    try:
+        # Parse JSON data
+        data = json.loads(request.body)
+        
+        # Retrieve Razorpay payment details
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_signature = data.get('razorpay_signature')
 
-        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-        try:
-            client.utility.verify_payment_signature({
-                'razorpay_order_id': razorpay_order_id,
-                'razorpay_payment_id': razorpay_payment_id,
-                'razorpay_signature': razorpay_signature
-            })
+        # Verify session data
+        session_order_id = request.session.get('razorpay_order_id')
+        session_amount = request.session.get('wallet_top_up_amount')
 
-            wallet, created = Wallet.objects.get_or_create(user=request.user, defaults={'balance': Decimal('0.00')})
+        if not session_order_id or not session_amount:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Invalid session data'
+            }, status=400)
 
-            amount = request.session.get('amount')
-            if amount is None:
-                return JsonResponse({'status': 'failed', 'message': 'Amount not found in session.'})
+        # Verify payment with Razorpay
+        client = razorpay.Client(
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+        
+        # Verify payment signature
+        client.utility.verify_payment_signature({
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        })
 
-            amount_decimal = Decimal(amount) / Decimal('100') 
+        # Convert amount to Decimal
+        amount_decimal = Decimal(str(session_amount))
 
-            wallet.balance += amount_decimal 
-            wallet.save()
+        # Get or create user wallet
+        wallet, _ = Wallet.objects.get_or_create(
+            user=request.user, 
+            defaults={'balance': Decimal('0.00')}
+        )
 
-            WalletTransaction.objects.create(
-                wallet=wallet,
-                amount=amount_decimal,
-                type='CREDIT'
-            )
-            messages.success(request,'successfully wallet money has been added')
-            return redirect('profile')
-        except Exception as e:
-            print(f"Error: {e}")
-            return JsonResponse({'status': 'failed', 'message': str(e)})
+        # Update wallet balance
+        wallet.balance += amount_decimal
+        wallet.save()
 
-    return JsonResponse({'status': 'invalid request'})
+        # Create wallet transaction
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            amount=amount_decimal,
+            type='CREDIT'
+        )
+
+        # Clear session data
+        del request.session['wallet_top_up_amount']
+        del request.session['razorpay_order_id']
+
+        return JsonResponse({
+            'status': 'success', 
+            'message': f'₹{amount_decimal} added to wallet successfully'
+        })
+
+    except Exception as e:
+        # Log the error
+        print(f"Wallet top-up error: {e}")
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Failed to add money to wallet'
+        }, status=500)
 
 def forgot_password(request):
     if request.method == "POST":

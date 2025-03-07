@@ -455,49 +455,108 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
     function initiatePayment() {
-        const amount = document.getElementById('amount').value;
-        // AJAX request to add money (wallet top-up)
-        fetch("{% url 'add_money' %}", {
+        const amountInput = document.getElementById('amount');
+        const amount = amountInput ? parseFloat(amountInput.value) : null;
+        
+        // Validate amount
+        if (!amount || isNaN(amount) || amount <= 0) {
+            alert('Please enter a valid amount');
+            return;
+        }
+    
+        // Get CSRF token from cookie
+        const csrftoken = getCookie('csrftoken');
+    
+        // Initiate payment via AJAX
+        fetch("/add-money/", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrftoken
             },
+            credentials: 'same-origin',
             body: JSON.stringify({ amount: amount })
         })
-        .then(response => response.json())
-        .then(data => {
-            handleRazorpayPayment(data);
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
         })
-        .catch(error => console.error('Error:', error));
+        .then(data => {
+            // Check if Razorpay order details are present
+            if (data.id) {
+                handleRazorpayPayment(data);
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Payment initiation error:', error);
+            alert('Failed to initiate payment. ' + error.message);
+        });
     }
-
+    
     function handleRazorpayPayment(data) {
         const options = {
-            key: '{{ settings.RAZORPAY_KEY_ID }}', // Your Razorpay Key ID
-            amount: data.amount, // Amount in paise
+            key: '{{ settings.RAZORPAY_KEY_ID }}',
+            amount: data.amount,
             currency: data.currency,
-            order_id: data.id, // Razorpay order ID returned from backend
-            name: 'Fresh2Home',
+            order_id: data.id,
+            name: 'Your Company Name',
             description: 'Wallet Top-Up',
             handler: function(response) {
-                // Fill in the hidden form and submit to your payment callback URL
-                document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
-                document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
-                document.getElementById('razorpay_signature').value = response.razorpay_signature;
-                document.getElementById('razorpayForm').submit();
-            },
-            prefill: {
-                name: '{{ request.user.get_full_name }}',
-                email: '{{ request.user.email }}',
-                contact: '{{ request.user.profile.phone_number|default:"" }}'
+                // Submit payment details to callback
+                fetch("/payment-callback/", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Money added to wallet successfully');
+                        window.location.reload();
+                    } else {
+                        alert('Payment failed: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Callback error:', error);
+                    alert('An error occurred during payment processing');
+                });
             },
             theme: {
-                color: '#3399cc'
+                color: '#007bff'
             }
         };
+        
         const rzp = new Razorpay(options);
         rzp.open();
+    }
+    
+    // Utility function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
 
     // Repayment function: initiates a new payment for an order on the same page.

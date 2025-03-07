@@ -50,15 +50,18 @@ from datetime import timedelta
 
 import pandas as pd
 from io import BytesIO
+from django.db.models.functions import TruncDate
 
 def sales_report(request):
+    # Get filter parameters
     filter_type = request.GET.get('filter', 'all')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
-    
+
+    # Start with all orders
     orders = Order.objects.all()
 
-    # Apply filters
+    # Apply filters based on request parameters
     if filter_type == 'daily':
         today = timezone.now().date()
         orders = orders.filter(order_date=today)
@@ -73,7 +76,7 @@ def sales_report(request):
     elif filter_type == 'custom' and start_date and end_date:
         orders = orders.filter(order_date__range=[start_date, end_date])
 
-    # Prepare report data
+    # Prepare basic report data
     report = {
         'total_orders': orders.count(),
         'total_sales': orders.aggregate(total=Sum('net_amount'))['total'] or 0,
@@ -81,20 +84,60 @@ def sales_report(request):
         'coupon_orders': orders.exclude(coupon__isnull=True).count(),
     }
 
-    # Handle download requests
-    if 'download' in request.GET:
+    # Calculate top 10 products based on sales
+    top_products = (
+        OrderItem.objects.filter(order__in=orders)
+        .values('product__name')
+        .annotate(
+            total_quantity=Sum('quantity'),
+            total_sales=Sum('total_amount')
+        )
+        .order_by('-total_sales')[:10]
+    )
+
+    # Calculate top 10 categories based on aggregated product sales
+    top_categories = (
+        OrderItem.objects.filter(order__in=orders)
+        .values('product__category__name')
+        .annotate(total_sales=Sum('total_amount'))
+        .order_by('-total_sales')[:10]
+    )
+
+    report['top_products'] = list(top_products)
+    report['top_categories'] = list(top_categories)
+
+    # Build chart data: group orders by date and sum net_amount
+    chart_data_qs = (
+        orders.annotate(date=TruncDate('order_date'))
+        .values('date')
+        .annotate(daily_sales=Sum('net_amount'))
+        .order_by('date')
+    )
+
+    chart_data = [
+        {
+            'date': item['date'].strftime("%Y-%m-%d") if item['date'] else '',
+            'daily_sales': float(item['daily_sales']) if item['daily_sales'] else 0,
+        }
+        for item in chart_data_qs
+    ]
+    report['chart_data'] = chart_data
+
+    # Handle download requests for PDF or Excel export
+    if request.GET.get('download') == 'true':
         format = request.GET.get('format', 'pdf')
         if format == 'pdf':
             return generate_pdf(request, orders, report)
         elif format == 'excel':
             return generate_excel(orders, report)
 
+    # If the request is an AJAX request, return JSON data
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse(report)
 
+    # Otherwise, render the HTML template with the report data
     return render(request, 'sales_report.html', {
         'report': report,
-        'orders': orders,
         'filter_type': filter_type,
         'start_date': start_date,
         'end_date': end_date

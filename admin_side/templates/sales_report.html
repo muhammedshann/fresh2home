@@ -4,97 +4,122 @@
 {% block extra_css %}
 <style>
     :root {
-        --primary-color: #0070f3;
-        --secondary-color: #00c4ff;
-        --dark-color: #111827;
+        --primary-color: #4361ee;
+        --secondary-color: #3a0ca3;
+        --accent-color: #4cc9f0;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
         --light-color: #f8f9fa;
-        --success-color: #10b981;
-        --warning-color: #f59e0b;
+        --dark-color: #2d3748;
+        --text-color: #4a5568;
+        --border-radius: 12px;
+        --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     
     body {
-        background-color: #f0f2f5;
+        background-color: #f7fafc;
         font-family: 'Inter', sans-serif;
+        color: var(--text-color);
     }
     
     .sales-report-container {
-        padding: 2rem 1.5rem;
+        padding: 2rem;
     }
     
     .report-title {
-        font-weight: 700;
-        margin-bottom: 2rem;
-        color: var(--dark-color);
-        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 2.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .report-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        border-radius: 2px;
     }
     
     .filter-card {
         background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 1.75rem;
+        margin-bottom: 2.5rem;
         border: none;
+        transition: transform 0.3s ease;
+    }
+    
+    .filter-card:hover {
+        transform: translateY(-5px);
     }
     
     .custom-select, .custom-date {
         border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        height: 48px;
+        border: 1px solid #e2e8f0;
+        height: 50px;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
         box-shadow: none;
         transition: all 0.3s;
     }
     
     .custom-select:focus, .custom-date:focus {
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
     }
     
     .btn-apply {
         background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         border: none;
-        height: 48px;
+        height: 50px;
         border-radius: 8px;
         font-weight: 600;
         transition: all 0.3s;
-        box-shadow: 0 4px 14px rgba(0, 112, 243, 0.4);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
     .btn-apply:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 112, 243, 0.5);
+        box-shadow: 0 8px 15px rgba(67, 97, 238, 0.4);
     }
     
     .summary-card {
-        border-radius: 16px;
+        border-radius: var(--border-radius);
         border: none;
-        padding: 1.5rem;
+        padding: 1.75rem;
         height: 100%;
         background: white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--box-shadow);
         position: relative;
         overflow: hidden;
         transition: all 0.3s;
     }
     
     .summary-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transform: translateY(-7px);
     }
     
-    .summary-card::after {
+    .summary-card::before {
         content: '';
         position: absolute;
-        bottom: 0;
+        top: 0;
         left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        width: 6px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--primary-color), var(--accent-color));
     }
     
     .summary-card h5 {
-        color: #6b7280;
-        font-weight: 500;
+        color: #718096;
+        font-weight: 600;
         font-size: 0.875rem;
         text-transform: uppercase;
         letter-spacing: 1px;
@@ -104,15 +129,22 @@
     .summary-card h2 {
         color: var(--dark-color);
         font-weight: 700;
-        font-size: 2rem;
+        font-size: 2.25rem;
         margin-bottom: 0;
+    }
+    
+    .download-buttons {
+        margin: 2.5rem 0;
     }
     
     .btn-download {
         border-radius: 8px;
         font-weight: 600;
-        padding: 0.75rem 1.5rem;
+        padding: 0.75rem 1.75rem;
         transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     
     .btn-pdf {
@@ -128,54 +160,173 @@
     }
     
     .btn-download:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
     
     .counter {
-        animation: fadeInUp 0.8s ease-out;
+        animation: fadeInUp 1s ease-out;
+        background: linear-gradient(135deg, var(--dark-color), var(--primary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
     
-    .download-buttons {
-        margin-top: 2rem;
+    /* Table styles for Top 10 sections */
+    .top-section {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        box-shadow: var(--box-shadow);
+        margin-top: 2.5rem;
+        transition: transform 0.3s ease;
+    }
+    
+    .top-section:hover {
+        transform: translateY(-5px);
+    }
+    
+    .top-section h2 {
+        margin-bottom: 1.5rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        position: relative;
+        display: inline-block;
+        padding-bottom: 0.5rem;
+    }
+    
+    .top-section h2::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 50px;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        border-radius: 2px;
+    }
+    
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    
+    .table th {
+        background-color: #f8fafc;
+        color: var(--dark-color);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        padding: 1rem;
+    }
+    
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-top: 1px solid #edf2f7;
+    }
+    
+    .table tbody tr {
+        transition: all 0.2s;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f7fafc;
+        transform: scale(1.01);
+    }
+    
+    /* Rank styling */
+    .rank {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        font-weight: 600;
+    }
+    
+    /* Chart section */
+    .chart-container {
+        position: relative;
+        height: 350px;
+        margin-top: 1.5rem;
+    }
+    
+    /* Animation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-in {
+        animation: fadeInUp 0.8s ease-out forwards;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .sales-report-container {
+            padding: 1rem;
+        }
+        
+        .summary-card {
+            margin-bottom: 1rem;
+        }
+        
+        .btn-download {
+            display: block;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
     }
 </style>
 <!-- Include Inter font -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 sales-report-container">
+<div class="container-fluid sales-report-container">
     <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <h1 class="text-center report-title">
-                <span style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                    Sales Report
-                </span>
+        <div class="col-lg-11">
+            <h1 class="text-center report-title animate-fade-in">
+                Sales Report
             </h1>
             
             <!-- Filter Form -->
-            <div class="card filter-card mb-4">
+            <div class="card filter-card animate-fade-in">
                 <form method="get" id="filterForm">
                     <div class="row align-items-center">
                         <div class="col-md-4 mb-3 mb-md-0">
-                            <select name="filter" class="form-select custom-select">
+                            <label class="form-label fw-semibold mb-2">Filter Period</label>
+                            <select name="filter" id="filterSelect" class="form-select custom-select">
                                 <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Time</option>
-                                <option value="daily" {% if filter_type == 'daily' %}selected{% endif %}>Daily</option>
-                                <option value="weekly" {% if filter_type == 'weekly' %}selected{% endif %}>Weekly</option>
-                                <option value="monthly" {% if filter_type == 'monthly' %}selected{% endif %}>Monthly</option>
-                                <option value="yearly" {% if filter_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                                <option value="daily" {% if filter_type == 'daily' %}selected{% endif %}>Today</option>
+                                <option value="weekly" {% if filter_type == 'weekly' %}selected{% endif %}>Last 7 Days</option>
+                                <option value="monthly" {% if filter_type == 'monthly' %}selected{% endif %}>Last 30 Days</option>
+                                <option value="yearly" {% if filter_type == 'yearly' %}selected{% endif %}>This Year</option>
                                 <option value="custom" {% if filter_type == 'custom' %}selected{% endif %}>Custom Range</option>
                             </select>
                         </div>
-                        <div class="col-md-5 mb-3 mb-md-0 custom-dates" {% if filter_type != 'custom' %}style="display:none;"{% endif %}>
+                        <div class="col-md-5 mb-3 mb-md-0 custom-dates" id="customDateFields" {% if filter_type != 'custom' %}style="display:none;"{% endif %}>
+                            <label class="form-label fw-semibold mb-2">Date Range</label>
                             <div class="d-flex gap-2">
                                 <input type="date" name="start_date" class="form-control custom-date" value="{{ start_date }}" placeholder="Start Date">
                                 <input type="date" name="end_date" class="form-control custom-date" value="{{ end_date }}" placeholder="End Date">
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-primary w-100 btn-apply">Apply Filter</button>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100 btn-apply">
+                                <i class="fas fa-filter me-2"></i> Apply Filter
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -184,25 +335,25 @@
             <!-- Report Summary -->
             <div class="row g-4 mb-4">
                 <div class="col-md-3">
-                    <div class="summary-card text-center">
+                    <div class="summary-card text-center animate-fade-in" style="animation-delay: 0.1s;">
                         <h5>Total Orders</h5>
                         <h2 class="counter" id="total_orders">{{ report.total_orders }}</h2>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="summary-card text-center">
+                    <div class="summary-card text-center animate-fade-in" style="animation-delay: 0.2s;">
                         <h5>Total Sales</h5>
                         <h2 class="counter" id="total_sales">₹{{ report.total_sales|floatformat:2 }}</h2>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="summary-card text-center">
+                    <div class="summary-card text-center animate-fade-in" style="animation-delay: 0.3s;">
                         <h5>Total Discount</h5>
                         <h2 class="counter" id="total_discount">₹{{ report.total_discount|floatformat:2 }}</h2>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="summary-card text-center">
+                    <div class="summary-card text-center animate-fade-in" style="animation-delay: 0.4s;">
                         <h5>Coupon Orders</h5>
                         <h2 class="counter" id="coupon_orders">{{ report.coupon_orders }}</h2>
                     </div>
@@ -210,13 +361,81 @@
             </div>
 
             <!-- Download Buttons -->
-            <div class="text-center download-buttons">
-                <a href="{% url 'sales_report' %}?download=true&format=pdf{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}{% if filter_type == 'custom' %}&start_date={{ start_date }}&end_date={{ end_date }}{% endif %}" class="btn btn-download btn-pdf me-2">
-                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+            <div class="text-center download-buttons animate-fade-in" style="animation-delay: 0.5s;">
+                <a href="{% url 'sales_report' %}?download=true&format=pdf{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}{% if filter_type == 'custom' %}&start_date={{ start_date }}&end_date={{ end_date }}{% endif %}" class="btn btn-download btn-pdf me-3">
+                    <i class="fas fa-file-pdf me-2"></i> Download PDF
                 </a>
                 <a href="{% url 'sales_report' %}?download=true&format=excel{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}{% if filter_type == 'custom' %}&start_date={{ start_date }}&end_date={{ end_date }}{% endif %}" class="btn btn-download btn-excel">
-                    <i class="fas fa-file-excel me-1"></i> Download Excel
+                    <i class="fas fa-file-excel me-2"></i> Download Excel
                 </a>
+            </div>
+            
+            <!-- Sales Chart Section -->
+            <div class="top-section animate-fade-in" style="animation-delay: 0.6s;">
+                <h2 class="mb-4">Sales Trend</h2>
+                <div class="chart-container">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Top 10 Products -->
+            <div class="top-section animate-fade-in" style="animation-delay: 0.7s;">
+                <h2 class="mb-4">Top 10 Products</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Product Name</th>
+                                <th>Total Quantity</th>
+                                <th>Total Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in report.top_products %}
+                                <tr>
+                                    <td><span class="rank">{{ forloop.counter }}</span></td>
+                                    <td>{{ product.product__name }}</td>
+                                    <td>{{ product.total_quantity }}</td>
+                                    <td>₹{{ product.total_sales|floatformat:2 }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4">No top products available for this period.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Top 10 Categories -->
+            <div class="top-section animate-fade-in" style="animation-delay: 0.8s;">
+                <h2 class="mb-4">Top 10 Categories</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Category Name</th>
+                                <th>Total Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in report.top_categories %}
+                                <tr>
+                                    <td><span class="rank">{{ forloop.counter }}</span></td>
+                                    <td>{{ category.product__category__name }}</td>
+                                    <td>₹{{ category.total_sales|floatformat:2 }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4">No top categories available for this period.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -226,17 +445,179 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/2.0.8/countUp.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+<!-- Include Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Show/hide date fields based on filter selection
+    document.getElementById('filterSelect').addEventListener('change', function() {
+        var customDateFields = document.getElementById('customDateFields');
+        if (this.value === 'custom') {
+            customDateFields.style.display = 'block';
+        } else {
+            customDateFields.style.display = 'none';
+        }
+    });
+    
+    // Initialize CountUp.js for animated counters
+    document.addEventListener('DOMContentLoaded', function() {
+        const counters = document.querySelectorAll('.counter');
+        counters.forEach(counter => {
+            const value = parseFloat(counter.innerText.replace(/[^\d.-]/g, ''));
+            const hasDecimal = counter.innerText.includes('.');
+            const options = {
+                decimalPlaces: hasDecimal ? 2 : 0,
+                duration: 2.5,
+                prefix: counter.innerText.includes('₹') ? '₹' : ''
+            };
+            const countUp = new CountUp(counter, value, options);
+            if (!countUp.error) {
+                countUp.start();
+            } else {
+                console.error(countUp.error);
+            }
+        });
+    });
+    
+    // Prepare initial chart data passed from the view
+    var initialChartData = {{ report.chart_data|safe }};
+    function getChartLabelsAndData(chartData) {
+        var labels = chartData.map(item => item.date);
+        var data = chartData.map(item => parseFloat(item.daily_sales));
+        return { labels: labels, data: data };
+    }
+    
+    var chartInfo = getChartLabelsAndData(initialChartData);
+    var ctx = document.getElementById('salesChart').getContext('2d');
+    var salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartInfo.labels,
+            datasets: [{
+                label: 'Daily Sales',
+                data: chartInfo.data,
+                backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                borderColor: '#4361ee',
+                borderWidth: 3,
+                pointBackgroundColor: '#4cc9f0',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            family: 'Inter',
+                            size: 12,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: {
+                        family: 'Inter',
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        family: 'Inter',
+                        size: 13
+                    },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Sales: ₹' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            family: 'Inter'
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        borderDash: [5, 5]
+                    },
+                    ticks: {
+                        font: {
+                            family: 'Inter'
+                        },
+                        callback: function(value) {
+                            return '₹' + value;
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            animation: {
+                duration: 2000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
     function fetchSalesReport() {
         $.ajax({
-            url: "{% url 'sales_report' %}",  // Ensure this matches your Django URL
+            url: "{% url 'sales_report' %}",
             type: "GET",
             dataType: "json",
             success: function(data) {
-                $('#total_orders').text(data.total_orders);
-                $('#total_sales').text('₹' + parseFloat(data.total_sales).toFixed(2));
-                $('#total_discount').text('₹' + parseFloat(data.total_discount).toFixed(2));
-                $('#coupon_orders').text(data.coupon_orders);
+                // Update counters with animation
+                const totalOrdersValue = parseInt(data.total_orders);
+                const totalSalesValue = parseFloat(data.total_sales);
+                const totalDiscountValue = parseFloat(data.total_discount);
+                const couponOrdersValue = parseInt(data.coupon_orders);
+                
+                new CountUp('total_orders', totalOrdersValue, {
+                    duration: 1.5
+                }).start();
+                
+                new CountUp('total_sales', totalSalesValue, {
+                    decimalPlaces: 2,
+                    prefix: '₹',
+                    duration: 1.5
+                }).start();
+                
+                new CountUp('total_discount', totalDiscountValue, {
+                    decimalPlaces: 2,
+                    prefix: '₹',
+                    duration: 1.5
+                }).start();
+                
+                new CountUp('coupon_orders', couponOrdersValue, {
+                    duration: 1.5
+                }).start();
+                
+                // Update chart if new data is provided
+                if(data.chart_data) {
+                    var chartInfo = getChartLabelsAndData(data.chart_data);
+                    salesChart.data.labels = chartInfo.labels;
+                    salesChart.data.datasets[0].data = chartInfo.data;
+                    salesChart.update();
+                }
             },
             error: function() {
                 console.error("Error fetching sales report data.");
@@ -244,8 +625,8 @@
         });
     }
     
-    // Auto-refresh the report every 5 seconds
-    setInterval(fetchSalesReport, 5000);    
+    // Auto-refresh the report and chart every 5 minutes (300000ms)
+    setInterval(fetchSalesReport, 300000);
 </script>
 {% endblock %}
 {% endblock %}

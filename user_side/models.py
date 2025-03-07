@@ -80,9 +80,22 @@ class Products(models.Model):
     class Meta:
         db_table = 'products'
         ordering = ['-created_at'] 
+
     def soft_delete(self):
         self.is_active = False
         self.save()
+
+    def get_final_price(self):
+        """Calculate the final price based on product or category discount."""
+        if self.discount:  # If product has its own discount, use it
+            discount_amount = (self.price * self.discount) / 100
+        elif self.category.discount:  # Otherwise, apply category discount
+            discount_amount = (self.price * self.category.discount) / 100
+        else:
+            discount_amount = 0  # No discount
+        
+        return self.price - discount_amount
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Products, on_delete=models.CASCADE, related_name='images')
