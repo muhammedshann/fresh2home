@@ -33,8 +33,7 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ["fresh2home.vercel.app", "127.0.0.1", "localhost"]
 
 # Application definition
 
@@ -150,6 +149,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # STATICFILES_DIRS = [
 #     BASE_DIR / "admin_side/static",  # Static directory for admin_side
 #     # BASE_DIR / "user_side/static",   # Static directory for user_side
