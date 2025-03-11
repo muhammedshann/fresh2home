@@ -49,11 +49,9 @@ def generate_referral_id(username):
 def referral_signup(request, referral_id):
     # Get the referrer user
     referrer = get_object_or_404(User, referral_id=referral_id)
-    print(referrer)
     
     # Store the referrer's ID in the session
     request.session['referrer_id'] = referrer.referral_id
-    print(request.session['referrer_id'])
     # Redirect to the signup page
     return redirect('signup')
 
@@ -143,7 +141,6 @@ def signup(request):
         # Generate OTP
         otp = generate_otp()
         otp_expiry_time = timezone.now() + timedelta(minutes=5)
-        print(otp)
         # Send OTP email
         send_mail(
             'Your OTP for Email Verification',
@@ -629,7 +626,6 @@ def edit_profile(request):
 
         if email != user.email:
             otp_code = generate_otp()
-            print(otp_code)
 
             expires_at = timezone.now() + timedelta(minutes=5)
 
@@ -697,36 +693,6 @@ def verify_otp(request):
             return redirect('verify_otp')
 
     return render(request, 'verify_otp.html')
-
-
-# def verify_otp1(request):
-#     if request.method == 'POST':
-#         otp_code = request.POST.get('otp')
-
-#         try:
-#             otp_entry = OTPVerification.objects.get(otp=otp_code, verified=False)
-            
-#             if otp_entry.is_expired():
-#                 messages.error(request, 'OTP has expired. Please request a new OTP.')
-#                 return redirect('login') 
-
-#             otp_entry.verified = True
-#             otp_entry.save()
-
-#             user = otp_entry.user
-#             user.is_verify = True
-#             user.email = otp_entry.email_or_phone 
-#             user.save()
-
-#             messages.success(request, 'Account created successfully! Please check your email for the OTP.')
-#             return redirect('login') 
-
-#         except OTPVerification.DoesNotExist:
-#             messages.error(request, 'Invalid OTP. Please try again.')
-#             return redirect('verify_otp1')  
-
-#     # ✅ Fix: Return a response for GET requests
-#     return render(request, 'verify_otp.html')
 
 def generate_otp():
     return ''.join(random.choices(string.digits, k=6))
@@ -1090,7 +1056,6 @@ def razorpay_callback(request):
             }
             payment = Payment.objects.get(razorpay_order_id=razorpay_order_id)
             transaction = Transaction.objects.get(payment=payment)
-            print('1')
             try:
                 client.utility.verify_payment_signature(params_dict)
                 payment.status = 'SUCCESS'
@@ -1100,7 +1065,6 @@ def razorpay_callback(request):
                 transaction.status='SUCCESS'
 
                 verified = True
-                print('2')
             except Exception as e:
                 payment.status = 'FAILED'
                 transaction.status='FAILED'
@@ -1115,7 +1079,6 @@ def razorpay_callback(request):
                 order.status = 'CONFIRMED'
                 order.save()
                 
-                print('3')
                 # Reduce stock and clear cart items upon successful payment.
                 cart = Cart.objects.get(user=payment.user)
                 cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
@@ -1434,7 +1397,6 @@ def payment_callback(request):
 
     except Exception as e:
         # Log the error
-        print(f"Wallet top-up error: {e}")
         return JsonResponse({
             'status': 'error', 
             'message': 'Failed to add money to wallet'
@@ -1453,7 +1415,6 @@ def forgot_password(request):
 
         otp = generate_otp()
         otp_expiry_time = timezone.now() + timedelta(minutes=5)
-        print(otp)
 
         send_mail(
             'Your OTP for Password Reset',
@@ -1470,7 +1431,6 @@ def forgot_password(request):
             expires_at=otp_expiry_time
         )
         request.session['reset_username'] = user.username
-        print(user.username)
 
         request.session['next_page'] = 'password' 
 

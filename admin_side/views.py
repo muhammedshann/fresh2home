@@ -326,7 +326,6 @@ def add_variant(request, product_id):
 
             messages.success(request, 'Variant created successfully.')
         except Exception as e:
-            print(f"Variant Creation Error: {e}")
             messages.error(request, f'Error: {e}')
 
     return redirect('products')
