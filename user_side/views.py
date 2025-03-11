@@ -1478,37 +1478,3 @@ def forgot_password(request):
 
     return render(request, "forgot_password.html")
 
-import openai
-
-@csrf_exempt
-def chatbot(request):
-    if request.method == 'POST':
-        try:
-            openai.api_key = settings.OPENAI_API_KEY
-            
-            data = json.loads(request.body)
-            user_message = data.get('message', '')
-            
-            # Use the chat models which are still supported in the older version
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": user_message}
-                ]
-            )
-            
-            bot_response = response.choices[0].message.content
-            
-            return JsonResponse({
-                'message': bot_response
-            })
-            
-        except Exception as e:
-            print(f"OpenAI API error: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
-    
-    elif request.method == 'GET':
-        return render(request, 'chat.html')
-    
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
