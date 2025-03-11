@@ -9,6 +9,19 @@
     .variant-select {
         margin-bottom: 15px;
     }
+    .price {
+        font-size: 20px;
+        font-weight: bold;
+    }
+    .original-price {
+        color: red;
+        text-decoration: line-through;
+        margin-right: 10px;
+    }
+    .discounted-price {
+        color: green;
+        font-size: 22px;
+    }
 </style>
 {% endblock %}
 
@@ -25,7 +38,6 @@
     <div class="product-container">
         <div class="product-images">
             <div class="image-wrapper">
-                <div class="img-zoom-lens"></div>
                 <img src="{{ product_images.0.image_url.url }}" alt="{{ product.name }}" class="main-image" id="main-image">
             </div>
             <div class="thumbnail-container">
@@ -43,6 +55,7 @@
                 {% for _ in "12345"|slice:"product.rating:"|make_list %}☆{% endfor %}
             </div>
             {% endif %}
+            
             <div class="variant-select">
                 <label for="variant-select">Select Weight:</label>
                 <select id="variant-select" class="form-control">
@@ -51,8 +64,18 @@
                     {% endfor %}
                 </select>
             </div>
-            <div id="variant-info"></div>
 
+            <!-- Corrected Price Display -->
+            <div id="variant-info">
+                <p>
+                    <span class="original-price">₹<span id="original-price"></span></span>
+                    <span class="discounted-price">₹<span id="discounted-price"></span></span>
+                </p>
+                <div class="available-quantity text-dark">
+                    Available Quantity: <span id="available-quantity"></span> pack(s)
+                </div>
+            </div>
+                
             <form action="{% url 'add_wishlist' product.id %}" method="POST" class="d-inline">
                 {% csrf_token %}
                 <button type="submit" class="btn p-0 border-0 bg-transparent">
@@ -63,6 +86,7 @@
                     {% endif %}
                 </button>
             </form>
+            
             <form id="add-to-cart-form" action="{% url 'add_to_cart' product.id %}" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="variant_id" id="variant-id-input" value="{{ product.variants.first.id }}">
@@ -72,6 +96,7 @@
                 </div>
                 <button type="submit" class="add-to-cart btn btn-primary">Add to Cart</button>
             </form>
+            
             <div class="description">
                 <h3>Product Description</h3>
                 <p>{{ product.description }}</p>
@@ -92,14 +117,15 @@
                 },
                 dataType: 'json',
                 success: function(data) {
-                    $('#variant-info').html(`
-                        <div class="price">₹${data.price} / PACK</div>
-                        <div class="available-quantity text-dark">
-                            Available Quantity: ${data.available_quantity} pack(s)
-                        </div>
-                    `);
-                    $('#variant-id-input').val(variantId); // Update the hidden input field
-                    $('#quantity-input').attr('max', data.available_quantity);
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        $('#original-price').text(data.original_price.toFixed(2)); // Show crossed-out price
+                        $('#discounted-price').text(data.discounted_price.toFixed(2)); // Highlight discounted price
+                        $('#available-quantity').text(data.available_quantity);
+                        $('#variant-id-input').val(variantId);
+                        $('#quantity-input').attr('max', data.available_quantity);
+                    }
                 }
             });
         }
@@ -112,59 +138,9 @@
         // Initialize with the first variant
         updateVariantInfo($('#variant-select').val());
     });
-    document.addEventListener("DOMContentLoaded", function () {
-        const imageWrapper = document.querySelector(".image-wrapper");
-        const mainImage = document.getElementById("main-image");
-        const lens = document.querySelector(".img-zoom-lens");
-        
-        // Customize zoom level here (1.5 = 150% zoom)
-        const ZOOM_LEVEL = 1.5;
-        
-        function moveZoomArea(e) {
-            const rect = imageWrapper.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            // Calculate lens position
-            let lensX = x - lens.offsetWidth / 2;
-            let lensY = y - lens.offsetHeight / 2;
-            
-            // Boundary checks
-            if (lensX < 0) lensX = 0;
-            if (lensY < 0) lensY = 0;
-            if (lensX > rect.width - lens.offsetWidth) lensX = rect.width - lens.offsetWidth;
-            if (lensY > rect.height - lens.offsetHeight) lensY = rect.height - lens.offsetHeight;
-            
-            // Position lens
-            lens.style.left = lensX + "px";
-            lens.style.top = lensY + "px";
-            
-            // Calculate and set zoom with reduced scale
-            const scaleX = (x / rect.width) * 100;
-            const scaleY = (y / rect.height) * 100;
-            mainImage.style.transformOrigin = `${scaleX}% ${scaleY}%`;
-            mainImage.style.transform = `scale(${ZOOM_LEVEL})`;
-        }
-        
-        // Smooth zoom in
-        imageWrapper.addEventListener("mouseenter", function() {
-            lens.style.display = "block";
-            mainImage.style.transition = "transform 0.2s ease-out";
-        });
-        
-        // Smooth zoom out
-        imageWrapper.addEventListener("mouseleave", function() {
-            lens.style.display = "none";
-            mainImage.style.transform = "scale(1)";
-            mainImage.style.transition = "transform 0.2s ease-out";
-        });
-        
-        imageWrapper.addEventListener("mousemove", moveZoomArea);
-    });
 
     function changeMainImage(src) {
-        const mainImage = document.getElementById("main-image");
-        mainImage.src = src;
+        document.getElementById("main-image").src = src;
     }
 </script>
 {% endblock %}

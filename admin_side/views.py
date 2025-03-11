@@ -408,6 +408,7 @@ def add_product(request):
         try:
             available_quantity = request.POST.get('available_quantity', '0').strip()
             price = request.POST.get('price', '0').strip()
+            discount = request.POST.get('discount')
 
             available_quantity = int(available_quantity) if available_quantity.isdigit() else 0
             try:
@@ -425,6 +426,7 @@ def add_product(request):
                 category=Category.objects.get(id=request.POST.get('category')),
                 price=price,
                 available_quantity=available_quantity,
+                discount = discount,
                 description=request.POST.get('description')
             )
 
@@ -487,7 +489,10 @@ def edit_product(request, product_id):
             product.price = price
             product.available_quantity = available_quantity
             product.description = description
-            product.discount = discount
+            if discount:
+                product.discount = Decimal(discount)
+            else:
+                product.discount = None
             product.save()
 
             if images:
@@ -592,9 +597,6 @@ def delete_order(request, order_id):
 def reviews(request):
     reviews = Review.objects.all().select_related('user')
     return render(request , 'review.html',{'reviews':reviews})
-    
-def offers(request):
-    return render(request , 'offers.html')
 
 def contactus(request):
     return render(request , 'contactus.html')
@@ -940,8 +942,20 @@ def resolve_complaint(request, complaint_id):
     return redirect('complaints_list')
 
 def wallet(request):
-    wallet = WalletTransaction.objects.all()
+    wallet = Wallet.objects.all()
     return render(request,'wallet.html',{ 'wallets': wallet })
+
+def offers(request):
+    products = Products.objects.filter(discount__gt=0)  # Get products with discounts
+    categories = Category.objects.filter(discount__gt=0)  # Get categories with discounts
+
+    context = {
+        'products': products,  # Pass products to template
+        'categories': categories  # Pass categories to template
+    }
+
+    return render(request, 'offers.html', context)
+
 
 def transactions(request):
     transaction = Transaction.objects.all()

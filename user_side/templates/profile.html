@@ -239,7 +239,7 @@
                                                     <p class="mb-0 small"><strong>Discount:</strong> ₹{{ order.discount|default:"0" }}</p>
                                                 </div>
                                                 <div class="col-sm-3">
-                                                    <p class="mb-0 small"><strong>Total:</strong> ₹{{ order.total }}</p>
+                                                    <p class="mb-0 small"><strong>Total:</strong> ₹{{ order.net_amount }}</p>
                                                 </div>
                                                 <div class="col-sm-3">
                                                     <a href="{% url 'download_invoice' order.id %}" class="btn btn-dark download-invoice-btn">

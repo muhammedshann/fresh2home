@@ -192,6 +192,8 @@ ACCOUNT_USERNAME_REQUIRED = True
 SOCIAL_AUTH_GOOGLE_CLIENT_ID = os.getenv("SOCIAL_AUTH_GOOGLE_CLIENT_ID")
 SOCIAL_AUTH_GOOGLE_SECRET = os.getenv("SOCIAL_AUTH_GOOGLE_SECRET")
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 # Redirect URLs
 LOGIN_REDIRECT_URL = '/'  # Redirect after successful login
 LOGOUT_REDIRECT_URL = '/'  # Redirect after logout

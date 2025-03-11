@@ -186,7 +186,7 @@ def homepage(request):
     if request.user.is_superuser:
         return redirect('adminlogin')
     
-    products = Products.objects.prefetch_related('images')
+    products = Products.objects.filter(discount__gt=0).prefetch_related('images')
     category = Category.objects.all()
     banners = Banner.objects.all()
     context = {
@@ -226,7 +226,8 @@ def get_variant_info(request):
     try:
         variant = ProductVariant.objects.get(id=variant_id)
         data = {
-            'price': float(variant.price),
+            'original_price': float(variant.price),  # Show the original price
+            'discounted_price': float(variant.discounted_price()),  # Show the discounted price
             'available_quantity': variant.available_quantity,
         }
         return JsonResponse(data)
@@ -235,16 +236,20 @@ def get_variant_info(request):
 
 def product_detail(request, product_id):
     product = get_object_or_404(Products, id=product_id)
+
     product_images = ProductImage.objects.filter(product=product)
     variants = product.variants.all()
     wishlist = None
+
     if request.user.is_authenticated:
-        wishlist = WishlistItem.objects.filter(wishlist__user=request.user, product__id=product_id).exists()
+        wishlist = WishlistItem.objects.filter(wishlist__user=request.user, product=product).exists()
+
     context = {
-        'product': product,
+        'product': product,  # Fix key name
+        'discounted_price': product.discounted_price(),  # Corrected method usage
         'product_images': product_images,
         'variants': variants,
-        'wishlist': wishlist
+        'wishlist': wishlist,
     }
     return render(request, 'product_detail.html', context)
 
@@ -332,6 +337,7 @@ def remove_from_wishlist(request, product_id):
     
     return redirect('wishlist_view')
 
+# Views.py
 @login_required
 def cart_view(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
@@ -343,11 +349,12 @@ def cart_view(request):
     item_weights = {}
     
     for item in cart_items:
+        # Use the price_at_time field that already stores the discounted price
+        item_total = item.price_at_time * item.quantity
+        
         if item.variant:
-            item_total = item.variant.price * item.quantity
             item_weight = item.variant.weight
         else:
-            item_total = item.product.price * item.quantity 
             item_weight = 0 
         
         subtotal += item_total
@@ -414,7 +421,7 @@ def add_to_cart(request, product_id):
 
         # Update quantity
         cart_item.quantity += quantity
-        cart_item.save()
+        cart_item.save()  # This will trigger the save method which sets price_at_time to discounted price
 
         messages.success(request, f'Added {quantity} {product.name} ({variant.get_weight_display()}) to cart.')
         return redirect('cart_view')
@@ -432,24 +439,27 @@ def update_cart_quantity(request):
         # Get the cart item and ensure it belongs to the current user
         cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
 
-        # Determine the price based on the variant (if it exists) or the product
-        item_price = cart_item.variant.price if cart_item.variant else cart_item.product.price
+        # Get the discounted price from the cart item
+        item_price = cart_item.price_at_time
 
+        # Check availability before incrementing
         if action == 'increment':
-            if cart_item.quantity < cart_item.product.available_quantity:
+            max_available = cart_item.variant.available_quantity if cart_item.variant else cart_item.product.available_quantity
+            if cart_item.quantity < max_available:
                 cart_item.quantity += 1
+            else:
+                return JsonResponse({
+                    'error': f'Only {max_available} items available in stock.'
+                }, status=400)
         elif action == 'decrement':
             if cart_item.quantity > 1:
                 cart_item.quantity -= 1
 
         cart_item.save()
 
-        # Recalculate subtotal, total, and individual item price
+        # Recalculate subtotal, total
         cart_items = CartItem.objects.filter(cart=cart_item.cart)
-        subtotal = sum(
-            (item.variant.price if item.variant else item.product.price) * item.quantity
-            for item in cart_items
-        )
+        subtotal = sum(item.price_at_time * item.quantity for item in cart_items)
         shipping_cost = 0 if subtotal > 499 else 50
         total = subtotal + shipping_cost
 
@@ -462,6 +472,8 @@ def update_cart_quantity(request):
             'shipping_cost': float(shipping_cost),
         })
 
+# JavaScript for the template
+
 @login_required
 def remove_cart_item(request, item_id):
     cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
@@ -473,9 +485,9 @@ def category_products(request, category_name):
     category = get_object_or_404(Category, name=category_name)
     
     products = Products.objects.filter(category=category)
-    if category.discount:
-        for product in products:
-            discount_amount = (product.price * category.discount) / 100  # Calculate discount
+    for product in products:
+        if product.discount:
+            discount_amount = (product.price * product.discount) / 100  # Calculate discount
             product.discounted_price = product.price - discount_amount
 
     # Handle sorting
@@ -786,13 +798,13 @@ def checkout(request):
             address_id = request.POST.get('selected_address')
             payment_method = request.POST.get('paymentMethod')
             pending_coupon = request.session.get('pending_coupon')
-            coupon_code = None
             discount = Decimal('0')
+            coupon = None
 
             if not address_id:
                 return JsonResponse({'error': 'Please select an address'}, status=400)
 
-            address = Address.objects.filter(id=address_id).first()
+            address = Address.objects.filter(id=address_id, user=request.user).first()
             if not address:
                 return JsonResponse({'error': 'Invalid address'}, status=400)
 
@@ -807,15 +819,11 @@ def checkout(request):
                     return JsonResponse({'error': 'Cart is empty'}, status=400)
 
                 # Calculate subtotal and shipping charge
-                subtotal = sum(
-                    (item.variant.price if item.variant else item.product.price) * item.quantity
-                    for item in cart_items
-                )
+                subtotal = sum(item.price_at_time * item.quantity for item in cart_items)
                 shipping_charge = 0 if subtotal > 499 else 50
                 total_amount = subtotal + shipping_charge
 
                 # Apply coupon if available
-                coupon=None
                 if pending_coupon:
                     coupon_code = pending_coupon.get('code')
                     discount = Decimal(pending_coupon.get('discount', '0'))
@@ -825,16 +833,12 @@ def checkout(request):
                             is_active=True,
                             expire_date__gt=timezone.now()
                         )
-                        existing_usage = CouponUsage.objects.filter(
-                            user=request.user,
-                            coupon=coupon
-                        ).first()
+                        existing_usage = CouponUsage.objects.filter(user=request.user, coupon=coupon).first()
                         if existing_usage and existing_usage.limit >= coupon.limit:
                             return JsonResponse({'error': 'Coupon usage limit reached'}, status=400)
+                        total_amount -= discount  # Apply discount after validation
                     except Coupon.DoesNotExist:
                         return JsonResponse({'error': 'Invalid coupon code'}, status=400)
-
-                total_amount = total_amount - discount
 
                 # Check stock availability
                 for item in cart_items:
@@ -866,34 +870,28 @@ def checkout(request):
                             status='PENDING',
                             net_amount=total_amount
                         )
-                        payment.order=order
+                        payment.order = order
                         payment.save()
 
-                        order_transaction = Transaction.objects.create(
+                        Transaction.objects.create(
                             payment=payment,
                             status='PENDING',
                             amount=total_amount,
                             date=timezone.now()
                         )
+
                         for item in cart_items:
                             item.product.available_quantity -= item.quantity
                             item.product.save()
                         cart_items.delete()
                         request.session.pop('pending_coupon', None)
-                        return JsonResponse({
-                            'status': 'success',
-                            'redirect_url': reverse('order_success')
-                        })
+                        return JsonResponse({'status': 'success', 'redirect_url': reverse('order_success')})
 
                 elif payment_method == 'wallet':
                     try:
                         wallet = Wallet.objects.get(user=request.user)
                         if wallet.balance < total_amount:
-                            return JsonResponse({
-                                'error': 'Insufficient wallet balance',
-                                'current_balance': str(wallet.balance),
-                                'required_amount': str(total_amount)
-                            }, status=400)
+                            return JsonResponse({'error': 'Insufficient wallet balance'}, status=400)
                         with transaction.atomic():
                             payment = Payment.objects.create(
                                 user=request.user,
@@ -906,7 +904,7 @@ def checkout(request):
                             )
                             wallet.balance -= total_amount
                             wallet.save()
-                            
+
                             order = create_order(
                                 user=request.user,
                                 address_id=address_id,
@@ -919,8 +917,9 @@ def checkout(request):
                                 status='CONFIRMED',
                                 net_amount=total_amount
                             )
-                            payment.order=order
+                            payment.order = order
                             payment.save()
+
                             WalletTransaction.objects.create(
                                 wallet=wallet,
                                 order=order,
@@ -928,31 +927,22 @@ def checkout(request):
                                 type='DEBIT'
                             )
 
-                            order_transaction = Transaction.objects.create(
+                            Transaction.objects.create(
                                 payment=payment,
                                 status='SUCCESS',
                                 amount=total_amount,
                                 date=timezone.now()
                             )
+
                             for item in cart_items:
                                 item.product.available_quantity -= item.quantity
                                 item.product.save()
                             cart_items.delete()
                             request.session.pop('pending_coupon', None)
-                            return JsonResponse({
-                                'status': 'success',
-                                'redirect_url': reverse('order_success')
-                            })
+                            return JsonResponse({'status': 'success', 'redirect_url': reverse('order_success')})
                     except Wallet.DoesNotExist:
                         return JsonResponse({'error': 'No wallet found for this account'}, status=400)
-                    except Exception as e:
-                        print(f"Wallet Payment Error: {str(e)}")
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': 'An error occurred while processing your wallet payment.'
-                        }, status=400)
 
-                # Razorpay Payment: create the payment and order now; update status later in callback
                 elif payment_method in ['creditCard', 'debitCard']:
                     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
                     razorpay_order = client.order.create({
@@ -970,26 +960,6 @@ def checkout(request):
                             coupon=coupon,
                             razorpay_order_id=razorpay_order['id']
                         )
-                        order = create_order(
-                            user=request.user,
-                            address_id=address_id,
-                            total=subtotal,
-                            shipping_charge=shipping_charge,
-                            cart_items=cart_items,
-                            coupon=coupon,
-                            discount=discount,
-                            payment=payment,
-                            net_amount=total_amount
-                        )
-                        payment.order=order
-                        payment.save()
-                        order_transaction = Transaction.objects.create(
-                            payment=payment,
-                            status='PENDING',
-                            amount=total_amount,
-                            date=timezone.now()
-                        )
-
                         return JsonResponse({
                             'status': 'success',
                             'razorpay_order_id': razorpay_order['id'],
@@ -1003,8 +973,8 @@ def checkout(request):
                 return JsonResponse({'error': 'Your cart is empty'}, status=400)
 
         except Exception as e:
-            print(f"Checkout Error: {str(e)}")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
 
     try:
         cart = Cart.objects.get(user=request.user)
@@ -1016,10 +986,8 @@ def checkout(request):
             messages.error(request, 'Your cart is empty')
             return redirect('cart_view')
 
-        subtotal = sum(
-            (item.variant.price if item.variant else item.product.price) * item.quantity
-            for item in cart_items
-        )
+        
+        subtotal = sum(item.price_at_time * item.quantity for item in cart_items)
         shipping_charge = 0 if subtotal > 499 else 50
         total_amount = subtotal + shipping_charge
 
@@ -1059,7 +1027,7 @@ def create_order(user, address_id, total, shipping_charge, cart_items, coupon, d
                 product=item.product,
                 quantity=item.quantity,
                 variant=item.variant,
-                total_amount=price * item.quantity
+                total_amount = sum(item.price_at_order * item.quantity for item in order.items.all())
             )
 
         send_mail(
@@ -1509,3 +1477,38 @@ def forgot_password(request):
         return redirect("verify_otp")
 
     return render(request, "forgot_password.html")
+
+import openai
+
+@csrf_exempt
+def chatbot(request):
+    if request.method == 'POST':
+        try:
+            openai.api_key = settings.OPENAI_API_KEY
+            
+            data = json.loads(request.body)
+            user_message = data.get('message', '')
+            
+            # Use the chat models which are still supported in the older version
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": user_message}
+                ]
+            )
+            
+            bot_response = response.choices[0].message.content
+            
+            return JsonResponse({
+                'message': bot_response
+            })
+            
+        except Exception as e:
+            print(f"OpenAI API error: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    elif request.method == 'GET':
+        return render(request, 'chat.html')
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

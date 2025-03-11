@@ -45,9 +45,6 @@
                         <th class="fw-500 py-2">S.no</th>
                         <th class="fw-500 py-2">User</th>
                         <th class="fw-500 py-2">Balance</th>
-                        <th class="fw-500 py-2">Order</th>
-                        <th class="fw-500 py-2">Amount</th>
-                        <th class="fw-500 py-2">Type</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,21 +53,12 @@
                         <td class="py-2">{{ forloop.counter }}</td>
                         <td>
                             <div>
-                                <div class="fw-500 text-truncate" style="max-width: 200px;">{{ wallet.wallet.user }}</div>
+                                <div class="fw-500 text-truncate" style="max-width: 200px;">{{ wallet.user }}</div>
                                 <div class="text-muted fs-xs">ID: #{{ wallet.id }}</div>
                             </div>
                         </td>
                         <td class="py-2">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ wallet.wallet.balance }}</div>
-                        </td>
-                        <td class="py-2">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ wallet.order.id }}</div>
-                        </td>
-                        <td class="py-2">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ wallet.amount }}</div>
-                        </td>
-                        <td class="py-2">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ wallet.type }}</div>
+                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ wallet.balance }}</div>
                         </td>
                     </tr>
                     {% endfor %}

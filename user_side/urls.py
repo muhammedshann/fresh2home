@@ -64,4 +64,7 @@ urlpatterns = [
     # Miscellaneous
     path('get-variant-info/', views.get_variant_info, name='get_variant_info'),
     path('password/', views.password, name='password'),
+
+    # chatbot
+    path("chatbot/", views.chatbot, name="chatbot"),
 ]

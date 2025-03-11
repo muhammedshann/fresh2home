@@ -68,14 +68,14 @@ class Category(models.Model):
 
 class Products(models.Model):
     name = models.CharField(max_length=255)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     available_quantity = models.IntegerField()
     description = models.TextField()
     discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)  # Changed default to True
 
     class Meta:
         db_table = 'products'
@@ -85,17 +85,16 @@ class Products(models.Model):
         self.is_active = False
         self.save()
 
-    def get_final_price(self):
-        """Calculate the final price based on product or category discount."""
-        if self.discount:  # If product has its own discount, use it
-            discount_amount = (self.price * self.discount) / 100
-        elif self.category.discount:  # Otherwise, apply category discount
-            discount_amount = (self.price * self.category.discount) / 100
-        else:
-            discount_amount = 0  # No discount
-        
-        return self.price - discount_amount
+    def discounted_price(self):
+        """Returns the final price after applying the discount percentage"""
+        if self.discount and self.discount > 0:
+            discount_amount = (self.discount / 100) * self.price
+            return self.price - discount_amount
+        return self.price
 
+
+    def __str__(self):
+        return self.name
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Products, on_delete=models.CASCADE, related_name='images')
@@ -111,25 +110,29 @@ class ProductVariant(models.Model):
         ('750', '750 Grams'),
         ('1000', '1 Kilogram')
     ]
-
+    
     product = models.ForeignKey('Products', on_delete=models.CASCADE, related_name='variants')
-    weight = models.IntegerField(choices=WEIGHT_CHOICES)
+    weight = models.CharField(max_length=10, choices=WEIGHT_CHOICES)  # Changed IntegerField to CharField
     price = models.DecimalField(max_digits=10, decimal_places=2)
     available_quantity = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         db_table = 'product_variants'
         unique_together = ['product', 'weight']
+    
+    def discounted_price(self):
+        """Applies the product's discount percentage to this variant"""
+        if self.product.discount and self.product.discount > 0:
+            discount_amount = (self.product.discount / 100) * self.price
+            return max(self.price - discount_amount, 0)  # Ensure price never goes negative
+        return self.price
 
+
+    
     def __str__(self):
         return f"{self.product.name} - {self.get_weight_display()}"
-
-    def get_weight_display(self):
-        return f"{self.weight / 1000} kg" if self.weight == 1000 else f"{self.weight} g"
-
-
     
 class Wishlist(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -156,14 +159,29 @@ class Cart(models.Model):
         db_table = 'carts'
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, related_name="items", on_delete=models.CASCADE)
-    product = models.ForeignKey(Products, on_delete=models.CASCADE)
+    cart = models.ForeignKey('Cart', related_name="items", on_delete=models.CASCADE)
+    product = models.ForeignKey('Products', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
-    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, null=True, blank=True)
+    variant = models.ForeignKey('ProductVariant', on_delete=models.CASCADE, null=True, blank=True)
     added_at = models.DateTimeField(auto_now_add=True)
+    price_at_time = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)  # Store price when added to cart
 
     class Meta:
         db_table = 'cart_items'
+    
+    def save(self, *args, **kwargs):
+        """Ensure the discounted price is stored in the cart"""
+        if not self.price_at_time:
+            if self.variant:
+                self.price_at_time = self.variant.discounted_price()  # Use the variant's discounted price
+            else:
+                self.price_at_time = self.product.discounted_price()  # Use the product's discounted price
+        super().save(*args, **kwargs)
+
+    @property
+    def total_price(self):
+        """Calculate total price for this cart item"""
+        return self.price_at_time * self.quantity
 
 
 class Order(models.Model):
@@ -175,12 +193,12 @@ class Order(models.Model):
         ('CANCELLED', 'Cancelled')
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
     payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, null=True, related_name='orders')
-    address = models.ForeignKey(Address, on_delete=models.PROTECT)
+    address = models.ForeignKey('Address', on_delete=models.PROTECT)
     order_date = models.DateField(auto_now=True)
     delivery_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     shipping_chrg = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
     coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True)
@@ -196,13 +214,23 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Products, on_delete=models.PROTECT)
+    product = models.ForeignKey('Products', on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField()
-    variant = models.ForeignKey(ProductVariant, on_delete=models.PROTECT,null=True, blank=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    variant = models.ForeignKey('ProductVariant', on_delete=models.PROTECT, null=True, blank=True)
+    price_at_order = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)  # Add this field
 
-    class Meta:
-        db_table = 'order_items'
+    def save(self, *args, **kwargs):
+        """Ensure the correct total amount is stored in the database"""
+        if not self.price_at_order:
+            if self.variant:
+                self.price_at_order = self.variant.discounted_price()
+            else:
+                self.price_at_order = self.product.discounted_price()
+        
+        self.total_amount = self.price_at_order * self.quantity  # Store total price
+        super().save(*args, **kwargs)
+
 
 class Review(models.Model):
     product = models.ForeignKey(Products, on_delete=models.CASCADE, related_name='reviews')
@@ -396,7 +424,7 @@ class Complaint(models.Model):
 
     order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name="complaints")
     description = models.TextField()
-    image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
+    image = models.ImageField(upload_to='complaints/', blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
 
