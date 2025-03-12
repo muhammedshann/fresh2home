@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Checkout - fresh2home{% endblock %}
+{% block title %}Checkout - freshEasy{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/payment.css' %}">
@@ -369,7 +369,7 @@
             amount: data.amount,
             currency: data.currency,
             order_id: data.razorpay_order_id,
-            name: 'Fresh2Home',
+            name: 'FreshEasy',
             description: 'Order Payment',
             handler: function(response) {
                 const paymentIdElem = document.getElementById('razorpay_payment_id');

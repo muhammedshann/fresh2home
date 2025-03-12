@@ -927,6 +927,24 @@ def checkout(request):
                             coupon=coupon,
                             razorpay_order_id=razorpay_order['id']
                         )
+                        order = create_order(
+                            user=request.user,
+                            address_id=address_id,
+                            total=subtotal,
+                            shipping_charge=shipping_charge,
+                            cart_items=cart_items,
+                            coupon=coupon,
+                            discount=discount,
+                            payment=payment,
+                            status='PENDING',
+                            net_amount=total_amount
+                        )
+                        Transaction.objects.create(
+                            payment=payment,
+                            status='PENDING',
+                            amount=total_amount,
+                            date=timezone.now()
+                        )
                         return JsonResponse({
                             'status': 'success',
                             'razorpay_order_id': razorpay_order['id'],
@@ -1057,6 +1075,7 @@ def razorpay_callback(request):
             }
             payment = Payment.objects.get(razorpay_order_id=razorpay_order_id)
             transaction = Transaction.objects.get(payment=payment)
+
             try:
                 client.utility.verify_payment_signature(params_dict)
                 payment.status = 'SUCCESS'
@@ -1064,19 +1083,18 @@ def razorpay_callback(request):
                 payment.razorpay_payment_id = payment_id
                 payment.razorpay_signature = signature
                 transaction.status='SUCCESS'
-
+                transaction.save()
                 verified = True
             except Exception as e:
                 payment.status = 'FAILED'
                 transaction.status='FAILED'
                 verified = False
+                transaction.save()
             payment.save()
-            transaction.save()
 
             # Retrieve the order linked to this payment.
             order = Order.objects.get(payment=payment)
-
-            if verified:
+            if verified:   
                 order.status = 'CONFIRMED'
                 order.save()
                 
