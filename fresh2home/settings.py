@@ -13,7 +13,7 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['13.53.173.3','localhost','127.0.0.1']
+ALLOWED_HOSTS = ['13.53.173.3','16.170.35.208','localhost','127.0.0.1','fresheasy.online']
 
 # Application definition
 
