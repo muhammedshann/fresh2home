@@ -161,12 +161,12 @@ aria-hidden="true">
                     <input type="text" class="form-control" name="name" value="{{ category.name }}">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea class="form-control" name="description">{{ category.description }}</textarea>
-                </div>
-                <div class="mb-3">
                     <label class="form-label">Discount (%)</label>
                     <input type="number" class="form-control" name="discount" value="{{ category.discount }}" min="0" max="100" step="0.01">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description">{{ category.description }}</textarea>
                 </div>
             </div>
             <div class="modal-footer">

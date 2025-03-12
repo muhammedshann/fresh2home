@@ -140,6 +140,7 @@ def signup(request):
 
         # Generate OTP
         otp = generate_otp()
+        print(otp)
         otp_expiry_time = timezone.now() + timedelta(minutes=5)
         # Send OTP email
         send_mail(
