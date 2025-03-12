@@ -60,7 +60,7 @@
                         <th class="fw-500 py-2">Category</th>
                         <th class="fw-500 py-2">Description</th>
                         <th class="fw-500 py-2">Discount</th>
-                        <th class="fw-500 py-2">Ststus</th>
+                        <th class="fw-500 py-2">Status</th>
                         <th class="fw-500 py-2 text-end">Actions</th>
                     </tr>
                 </thead>
@@ -78,15 +78,15 @@
                             <div class="fw-500 text-truncate" style="max-width: 200px;">{{ category.description }}</div>
                         </td>
                         <td class="py-2">
+                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ category.discount }}</div>
+                        </td>
+                        <td class="py-2">
                             <button data-url="{% url 'category_active' category.id %}"
                                     class="btn btn-sm toggle-status {% if category.is_active %}btn-success{% else %}btn-danger{% endif %}">
                                     <i
                                         class="bi {% if category.is_active %}bi-check-circle{% else %}bi-x-circle{% endif %}"></i>
                                     {% if category.is_active %} active {% else %} not active {% endif %}
                             </button>
-                        </td>
-                        <td class="py-2">
-                            <div class="fw-500 text-truncate" style="max-width: 200px;">{{ category.discount }}</div>
                         </td>
                         <td class="py-2 text-end">
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
@@ -161,12 +161,12 @@ aria-hidden="true">
                     <input type="text" class="form-control" name="name" value="{{ category.name }}">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Discount (%)</label>
-                    <input type="number" class="form-control" name="discount" value="{{ category.discount }}" min="0" max="100" step="0.01">
-                </div>
-                <div class="mb-3">
                     <label class="form-label">Description</label>
                     <textarea class="form-control" name="description">{{ category.description }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Discount (%)</label>
+                    <input type="number" class="form-control" name="discount" value="{{ category.discount }}" min="0" max="100" step="0.01">
                 </div>
             </div>
             <div class="modal-footer">
