@@ -67,10 +67,16 @@
 
             <!-- Corrected Price Display -->
             <div id="variant-info">
-                <p>
-                    <span class="original-price">₹<span id="original-price"></span></span>
-                    <span class="discounted-price">₹<span id="discounted-price"></span></span>
-                </p>
+                {% if product.discount and product.discount > 0 %}
+                    <p>
+                        <span class="original-price text-danger"><del>₹<span id="original-price"></span></del></span>
+                        <span class="discounted-price fw-bold text-success">₹<span id="discounted-price"></span></span>
+                    </p>
+                {% else %}
+                    <p>
+                        <span class="fw-bold text-success fs-4">₹<span id="original-price"></span></span>
+                    </p>
+                {% endif %}
                 <div class="available-quantity text-dark">
                     Available Quantity: <span id="available-quantity"></span> pack(s)
                 </div>
@@ -120,8 +126,33 @@
                     if (data.error) {
                         alert(data.error);
                     } else {
-                        $('#original-price').text(data.original_price.toFixed(2)); // Show crossed-out price
-                        $('#discounted-price').text(data.discounted_price.toFixed(2)); // Highlight discounted price
+                        // Always update the original price
+                        $('#original-price').text(data.original_price.toFixed(2));
+                        
+                        // Check if there is a discount
+                        if (data.has_discount) {
+                            // Update and show the discounted price element
+                            $('#discounted-price').text(data.discounted_price.toFixed(2));
+                            
+                            // Make sure the correct pricing display is visible
+                            if ($('.discounted-price').length) {
+                                // We're in the discount display section of the template
+                                $('.original-price, .discounted-price').closest('p').show();
+                            } else {
+                                // We need to reload the page to get the correct template
+                                location.reload();
+                            }
+                        } else {
+                            // Make sure the regular price display is visible
+                            if (!$('.discounted-price').length) {
+                                // We're in the regular price display section
+                                $('.original-price').closest('p').show();
+                            } else {
+                                // We need to reload the page to get the correct template
+                                location.reload();
+                            }
+                        }
+                        
                         $('#available-quantity').text(data.available_quantity);
                         $('#variant-id-input').val(variantId);
                         $('#quantity-input').attr('max', data.available_quantity);
@@ -129,12 +160,12 @@
                 }
             });
         }
-    
+
         // Update variant info when the user selects a variant
         $('#variant-select').change(function() {
             updateVariantInfo($(this).val());
         });
-    
+
         // Initialize with the first variant
         updateVariantInfo($('#variant-select').val());
     });

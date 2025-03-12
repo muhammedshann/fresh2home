@@ -223,9 +223,15 @@ def get_variant_info(request):
     variant_id = request.GET.get('variant_id')
     try:
         variant = ProductVariant.objects.get(id=variant_id)
+        product = variant.product
+        
+        # Determine if there's a discount
+        has_discount = product.discount and product.discount > 0
+        
         data = {
-            'original_price': float(variant.price),  # Show the original price
-            'discounted_price': float(variant.discounted_price()),  # Show the discounted price
+            'original_price': float(variant.price),
+            'discounted_price': float(variant.discounted_price()) if has_discount else None,
+            'has_discount': has_discount,
             'available_quantity': variant.available_quantity,
         }
         return JsonResponse(data)
@@ -660,7 +666,21 @@ def edit_profile(request):
 
     return render(request, 'profile.html')
 
+@never_cache
 def verify_otp(request):
+    # Get the user's email from session
+    email_or_phone = request.session.get('email_or_phone')
+    
+    # Retrieve the OTP entry
+    try:
+        otp_entry = OTPVerification.objects.filter(
+            email_or_phone=email_or_phone, 
+            verified=False
+        ).latest('created_at')
+        expires_at = otp_entry.expires_at
+    except (OTPVerification.DoesNotExist, TypeError):
+        expires_at = None
+    
     if request.method == 'POST':
         otp_code = request.POST.get('otp')
 
@@ -668,6 +688,7 @@ def verify_otp(request):
             otp_entry = OTPVerification.objects.get(otp=otp_code, verified=False)
             
             if otp_entry.is_expired():
+                otp_entry.delete()
                 messages.error(request, 'OTP has expired. Please request a new OTP.')
                 return redirect('forgot_password')
 
@@ -680,12 +701,14 @@ def verify_otp(request):
             if user:
                 user.is_verify = True
                 user.save() 
+                otp_entry.delete()
 
             messages.success(request, 'OTP verification successful!')
 
             # Determine the next page dynamically
             next_page = request.session.get('next_page', 'profile')
-            del request.session['next_page']
+            if 'next_page' in request.session:
+                del request.session['next_page']
 
             return redirect(next_page)
         
@@ -693,7 +716,7 @@ def verify_otp(request):
             messages.error(request, 'Invalid OTP. Please try again.')
             return redirect('verify_otp')
 
-    return render(request, 'verify_otp.html')
+    return render(request, 'verify_otp.html', {"expires_at": expires_at})
 
 def generate_otp():
     return ''.join(random.choices(string.digits, k=6))
@@ -1421,6 +1444,7 @@ def payment_callback(request):
             'message': 'Failed to add money to wallet'
         }, status=500)
 
+@never_cache
 def forgot_password(request):
     if request.method == "POST":
         email = request.POST.get('email')
@@ -1433,6 +1457,7 @@ def forgot_password(request):
             return render(request, "forgot_password.html")
 
         otp = generate_otp()
+        print(otp)
         otp_expiry_time = timezone.now() + timedelta(minutes=5)
 
         send_mail(
@@ -1443,15 +1468,18 @@ def forgot_password(request):
             fail_silently=False,
         )
 
+        # Create OTP verification record
         OTPVerification.objects.create(
             user=user,
             otp=otp,
             email_or_phone=email,
             expires_at=otp_expiry_time
         )
+        
+        # Store information in session
         request.session['reset_username'] = user.username
-
-        request.session['next_page'] = 'password' 
+        request.session['email_or_phone'] = email  # Add this line
+        request.session['next_page'] = 'password'
 
         return redirect("verify_otp")
 
