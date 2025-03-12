@@ -140,7 +140,6 @@ def signup(request):
 
         # Generate OTP
         otp = generate_otp()
-        print(otp)
         otp_expiry_time = timezone.now() + timedelta(minutes=5)
         # Send OTP email
         send_mail(
@@ -1448,8 +1447,6 @@ def payment_callback(request):
 def forgot_password(request):
     if request.method == "POST":
         email = request.POST.get('email')
-
-        # Check if user exists with the given email
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
@@ -1457,7 +1454,6 @@ def forgot_password(request):
             return render(request, "forgot_password.html")
 
         otp = generate_otp()
-        print(otp)
         otp_expiry_time = timezone.now() + timedelta(minutes=5)
 
         send_mail(
