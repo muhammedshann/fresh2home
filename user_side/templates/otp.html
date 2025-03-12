@@ -4,44 +4,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log In</title>
+    <title>OTP Verification - freshEasy</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
-<link href="{% static 'css/login.css' %}" rel="stylesheet">
+    <link href="{% static 'css/login.css' %}" rel="stylesheet">
+    <style>
+        /* OTP Specific Styles */
+    .otp-input-container {
+        margin: 0 auto;
+        max-width: 100%;
+    }
+
+    .verification-illustration img {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    .resend-text {
+        font-size: 0.9rem;
+        color: var(--light-text);
+    }
+
+    .resend-link {
+        color: var(--primary-color);
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .resend-link:hover {
+        color: var(--primary-hover);
+        text-decoration: underline;
+    }
+    </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="card">
-            <div class="row g-0">
-                <!-- Illustration Section -->
-                <div class="col-md-6">
-                    <div class="illustration-section">
-                        <img src="{% static 'images/otp.gif' %}" alt="Login illustration" class="login_img">
+    <div class="container-fluid">
+        <div class="row min-vh-100">
+            <!-- Left side - Brand imagery -->
+            <div class="col-lg-6 d-none d-lg-flex brand-side">
+                <div class="brand-content">
+                    <div class="logo-container mb-4">
+                        <h2 class="brand-name">freshEasy</h2>
+                    </div>
+                    <h1 class="welcome-text">Verify Your Account</h1>
+                    <p class="brand-tagline">We've sent a verification code to your email or phone. Please enter it below to continue shopping.</p>
+                    <div class="verification-illustration">
+                        <img src="/placeholder.svg?height=300&width=400" alt="Verification illustration" class="img-fluid">
                     </div>
                 </div>
-                
-                <!-- Form Section -->
-                <div class="col-md-6">
-                    <div class="card-body p-4">
-                        <h1>OTP</h1>
-                        <p class="subtitle">Enter your OTP</p>
-                        <!-- otp_form.html -->
-                        <form method="POST">
-                            {% csrf_token %}
-
-                            <div class="mb-3">
-                                <input type="text" name="otp"  maxlength='6' class="form-control" placeholder="enter your OTP" required>
-                            </div>
-                            {% if messages %}
-                                {% for message in messages %}
-                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                                {% endfor %}
-                            {% endif %}
-
-                            <button type="submit" class="btn btn-login w-100">Verify OTP</button>
-                        </form>
+            </div>
+            
+            <!-- Right side - OTP form -->
+            <div class="col-12 col-lg-6 form-side">
+                <div class="form-wrapper">
+                    <div class="d-lg-none text-center mb-4">
+                        <h2 class="brand-name">freshEasy</h2>
                     </div>
+                    
+                    <div class="login-header">
+                        <h1>Verification Code</h1>
+                        <p class="subtitle">Enter the 6-digit code we sent you</p>
+                    </div>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <div class="otp-input-container">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                                    <input type="text" name="otp" maxlength="6" class="form-control" placeholder="Enter your OTP" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <button type="submit" class="btn btn-login w-100">Verify OTP</button>
+                        
+                        <div class="text-center mt-4">
+                            <p class="resend-text">
+                                Didn't receive the code? 
+                                <a href="#" class="resend-link">Resend OTP</a>
+                            </p>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
