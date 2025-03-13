@@ -11,7 +11,7 @@ if not SECRET_KEY:
     raise ValueError("Missing SECRET_KEY in .env file")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = ['13.53.173.3','16.170.35.208','localhost','127.0.0.1','fresheasy.online']
 
@@ -64,7 +64,8 @@ CORS_ALLOWED_ORIGINS = [
 
 ROOT_URLCONF = 'fresh2home.urls'
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Define BASE_DIR as the project root
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 TEMPLATES = [
     {
@@ -124,8 +125,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Define BASE_DIR as the project root
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 # URL for static files
 STATIC_URL = '/static/'
