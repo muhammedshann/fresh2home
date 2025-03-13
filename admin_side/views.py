@@ -51,7 +51,7 @@ from datetime import timedelta
 import pandas as pd
 from io import BytesIO
 from django.db.models.functions import TruncDate
-
+@login_required(login_url='adminlogin')
 def sales_report(request):
     # Get filter parameters
     filter_type = request.GET.get('filter', 'all')
@@ -142,7 +142,7 @@ def sales_report(request):
         'start_date': start_date,
         'end_date': end_date
     })
-
+@login_required(login_url='adminlogin')
 def generate_excel(orders, report):
     data = {
         'Order ID': [order.id for order in orders],
@@ -177,6 +177,7 @@ def generate_excel(orders, report):
     response['Content-Disposition'] = f'attachment; filename="sales_report_{timezone.now().strftime("%Y%m%d")}.xlsx"'
     return response
 
+@login_required(login_url='adminlogin')
 def generate_pdf(request, orders, report):
     # Option 1: Using reportlab directly
     buffer = BytesIO()
@@ -265,7 +266,6 @@ def store(request):
     return render(request, 'stores.html', {'data': page_obj})
 
 @never_cache
-@login_required
 def customers(request):
     if request.user.is_authenticated:
         if request.user.is_superuser:
@@ -280,6 +280,8 @@ def customers(request):
 
 @never_cache
 def delete_customer(request, customer_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     customer = get_object_or_404(User, id=customer_id)
     
     try:
@@ -294,6 +296,8 @@ def delete_customer(request, customer_id):
 
 
 def user_active(request, user_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     if request.method == 'POST':
         user = get_object_or_404(User, id=user_id)
         user.is_active = not user.is_active
@@ -305,6 +309,8 @@ def user_active(request, user_id):
 @never_cache
 @login_required
 def add_variant(request, product_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     product = get_object_or_404(Products, id=product_id)
 
     if request.method == 'POST':
@@ -403,6 +409,8 @@ def product_list(request):
 @never_cache
 @login_required
 def add_product(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     if request.method == 'POST':
         try:
             available_quantity = request.POST.get('available_quantity', '0').strip()
@@ -444,6 +452,8 @@ def add_product(request):
     return redirect("add_products")
 
 def delete_product(request, product_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     product = get_object_or_404(Products, id=product_id)
     
     try:
@@ -457,6 +467,8 @@ def delete_product(request, product_id):
 @never_cache
 @login_required
 def edit_product(request, product_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     product = get_object_or_404(Products, id=product_id)
 
     if request.method == "POST":
@@ -528,6 +540,8 @@ def edit_product(request, product_id):
 
 
 def delete_image(request, image_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     image = get_object_or_404(ProductImage, id=image_id)
     product_id = image.product.id
     image.delete()
@@ -538,6 +552,8 @@ def delete_image(request, image_id):
 @never_cache
 @login_required
 def admin_orders(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     orders = (
         Order.objects
         .select_related("user", "address")
@@ -559,6 +575,8 @@ def admin_orders(request):
 @never_cache
 @login_required
 def update_order_status(request, order_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     if request.method == 'POST':
         try:
             order = Order.objects.get(id=order_id)
@@ -588,19 +606,16 @@ def update_order_status(request, order_id):
 
 @login_required
 def delete_order(request, order_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     order = get_object_or_404(Order, id=order_id)
     order.delete()
     messages.success(request, "Order deleted successfully!")
     return redirect('orders')
 
-def reviews(request):
-    reviews = Review.objects.all().select_related('user')
-    return render(request , 'review.html',{'reviews':reviews})
-
-def contactus(request):
-    return render(request , 'contactus.html')
-
 def coupon(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     coupons = Coupon.objects.all()
     paginator = Paginator(coupons, 10)
     page_number = request.GET.get('page')
@@ -608,6 +623,8 @@ def coupon(request):
     return render(request , 'coupon.html',{'data':page_obj})
 
 def save_coupon(request, coupon_id=None):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     if request.method == 'POST':
         code = request.POST.get('code')
         discount_type = request.POST.get('type')
@@ -649,6 +666,8 @@ def save_coupon(request, coupon_id=None):
     return render(request, 'coupon.html', {'data': page_obj})
 
 def edit_coupon(request, coupon_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     coupon = get_object_or_404(Coupon, id=coupon_id)
     coupons = Coupon.objects.all()
     paginator = Paginator(coupons, 10)
@@ -657,6 +676,8 @@ def edit_coupon(request, coupon_id):
     return render(request, 'coupon.html', {'data': page_obj, 'edit_coupon': coupon, 'edit_mode': True})
 
 def toggle_coupon_status(request, coupon_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     coupon = get_object_or_404(Coupon, id=coupon_id)
     coupon.is_active = not coupon.is_active  # Toggle the status
     coupon.save()
@@ -664,6 +685,8 @@ def toggle_coupon_status(request, coupon_id):
     return redirect('coupon')
 
 def delete_coupon(request, coupon_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     coupon = get_object_or_404(Coupon, id=coupon_id)
     coupon.delete()
     messages.success(request, 'Coupon deleted successfully!')
@@ -718,6 +741,8 @@ def add_banner(request):
 
 @login_required
 def edit_banner(request, banner_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     banner = get_object_or_404(Banner, id=banner_id)
 
     if request.method == "POST":
@@ -738,6 +763,8 @@ def edit_banner(request, banner_id):
     return render(request, "banner.html", {"banner": banner})
 
 def delete_banner(request, id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     banner = get_object_or_404(Banner, id=id)
     banner.delete()
     return redirect('banner')
@@ -755,6 +782,8 @@ def category(request):
     return render(request , 'category.html',{'data': page_obj,})
     
 def category_active(request, category_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     if request.method == 'POST':
         category = get_object_or_404(Category, id=category_id)
         category.is_active = not category.is_active
@@ -763,6 +792,8 @@ def category_active(request, category_id):
     return JsonResponse({'status': 'error'}, status=400)
     
 def add_category(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     if request.method == 'POST':
         name = request.POST.get('categoryname')
         description = request.POST.get('description')
@@ -788,6 +819,8 @@ def add_category(request):
     return redirect('category') 
 
 def delete_category(request, category_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     category = get_object_or_404(Category, id=category_id)
 
     try:
@@ -820,8 +853,6 @@ def edit_category(request, category_id):
 
     return redirect('category')
 
-def notification(request):
-    return render(request , 'notification.html')
 
 def logout_admin(request):
     logout(request)
@@ -829,6 +860,8 @@ def logout_admin(request):
 
 @login_required
 def complaints(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     complaints_list = Complaint.objects.select_related('order_item__order', 'order_item__product')
     paginator = Paginator(complaints_list, 10)  # Show 10 complaints per page
     page_number = request.GET.get('page')
@@ -841,6 +874,8 @@ def complaints(request):
 
 @login_required
 def update_complaint_status(request, complaint_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     complaint = get_object_or_404(Complaint, id=complaint_id)
     
     if request.method == 'POST':
@@ -905,6 +940,8 @@ def update_complaint_status(request, complaint_id):
 
 @login_required
 def delete_complaint(request, complaint_id):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     complaint = get_object_or_404(Complaint, id=complaint_id)
     if request.method == 'POST':
         complaint.delete()
@@ -912,7 +949,8 @@ def delete_complaint(request, complaint_id):
     return redirect('complaints')
 
 def resolve_complaint(request, complaint_id):
-    
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     complaint = get_object_or_404(Complaint, id=complaint_id)
     
     # Ensure the complaint is not already resolved
@@ -941,10 +979,14 @@ def resolve_complaint(request, complaint_id):
     return redirect('complaints_list')
 
 def wallet(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     wallet = Wallet.objects.all()
     return render(request,'wallet.html',{ 'wallets': wallet })
 
 def offers(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     products = Products.objects.filter(discount__gt=0)  # Get products with discounts
     categories = Category.objects.filter(discount__gt=0)  # Get categories with discounts
 
@@ -957,5 +999,7 @@ def offers(request):
 
 
 def transactions(request):
+    if not request.user.is_superuser and not request.user.is_staff:
+        return redirect('homepage')
     transaction = Transaction.objects.all()
     return render(request,'transaction.html',{ 'transaction': transaction })
