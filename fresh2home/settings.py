@@ -14,7 +14,6 @@ if not SECRET_KEY:
 DEBUG = True
 
 ALLOWED_HOSTS = ['13.53.173.3','16.170.35.208','localhost','127.0.0.1','fresheasy.online']
-CSRF_TRUSTED_ORIGINS = ['https://fresheasy.online', 'https://www.fresheasy.online']
 
 # Application definition
 
@@ -142,7 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'user_side.User'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/home/ubuntu/fresh2home/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') 
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',  # Default
