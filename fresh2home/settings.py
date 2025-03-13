@@ -124,14 +124,17 @@ USE_I18N = True
 
 USE_TZ = True
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Define BASE_DIR as the project root
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+# URL for static files
+STATIC_URL = '/static/'
 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
+# Directories where Django will look for static files (for development)
+STATICFILES_DIRS = [BASE_DIR / "fresh2home/static"]
+
+# The directory where collectstatic will collect static files for production
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
