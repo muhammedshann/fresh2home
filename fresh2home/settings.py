@@ -124,18 +124,11 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-
+STATIC_URL = '/static/'
+STATIC_ROOT = '/home/ubuntu/fresh2home/staticfiles/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "fresh2home/static"),
+    '/home/ubuntu/fresh2home/static/',
 ]
-
-# STATIC_URL = '/static/'
-# STATIC_ROOT = '/home/ubuntu/fresh2home/staticfiles/'
-# STATICFILES_DIRS = [
-#     '/home/ubuntu/fresh2home/static/',
-# ]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -146,7 +139,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'user_side.User'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media') 
+MEDIA_ROOT = '/home/ubuntu/fresh2home/media/'
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',  # Default
