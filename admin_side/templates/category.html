@@ -82,12 +82,12 @@
                         </td>
                         <td class="py-2">
                             <button data-url="{% url 'category_active' category.id %}"
-                                    class="btn btn-sm toggle-status {% if category.is_active %}btn-success{% else %}btn-danger{% endif %}">
-                                    <i
-                                        class="bi {% if category.is_active %}bi-check-circle{% else %}bi-x-circle{% endif %}"></i>
-                                    {% if category.is_active %} active {% else %} not active {% endif %}
+                                    class="btn btn-sm toggle-status 
+                                    {% if category.is_active %}btn-success{% else %}btn-danger{% endif %}">
+                                <i class="bi {% if category.is_active %}bi-check-circle{% else %}bi-x-circle{% endif %}"></i>
+                                {% if category.is_active %}Active{% else %}Not Active{% endif %}
                             </button>
-                        </td>
+                        </td>                        
                         <td class="py-2 text-end">
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#editModal{{ category.id }}">
