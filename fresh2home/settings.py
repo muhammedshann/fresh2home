@@ -14,6 +14,7 @@ if not SECRET_KEY:
 DEBUG = True
 
 ALLOWED_HOSTS = ['13.53.173.3','16.170.35.208','localhost','127.0.0.1','fresheasy.online']
+CSRF_TRUSTED_ORIGINS = ['https://fresheasy.online', 'https://www.fresheasy.online']
 
 # Application definition
 
@@ -125,10 +126,12 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+
+# This is where all static files will be collected when you run `collectstatic`
 STATIC_ROOT = '/home/ubuntu/fresh2home/staticfiles/'
-STATICFILES_DIRS = [
-    '/home/ubuntu/fresh2home/static/',
-]
+
+# Since this is production, leave STATICFILES_DIRS empty
+STATICFILES_DIRS = []
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -139,7 +142,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'user_side.User'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media') 
+MEDIA_ROOT = '/home/ubuntu/fresh2home/media/'
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',  # Default
