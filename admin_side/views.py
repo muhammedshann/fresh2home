@@ -24,7 +24,7 @@ def adminlogin(request):
             return redirect('products') 
         else:
             messages.error(request, 'You do not have permission to access this page.')
-            return redirect('signin') 
+            return redirect('login') 
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -700,7 +700,7 @@ def banner(request):
         page_obj = paginator.get_page(page_number)
         return render(request, 'banner.html', {'data': page_obj,})
     else:
-        return redirect('signin')
+        return redirect('login')
 
 @never_cache
 @login_required
