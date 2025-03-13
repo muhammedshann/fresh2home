@@ -124,13 +124,18 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# This is where all static files will be collected when you run `collectstatic`
-STATIC_ROOT = '/home/ubuntu/fresh2home/staticfiles/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "fresh2home/static"),
+]
 
-# Since this is production, leave STATICFILES_DIRS empty
-STATICFILES_DIRS = []
+# STATIC_URL = '/static/'
+# STATIC_ROOT = '/home/ubuntu/fresh2home/staticfiles/'
+# STATICFILES_DIRS = [
+#     '/home/ubuntu/fresh2home/static/',
+# ]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

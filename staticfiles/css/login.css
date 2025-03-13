@@ -1,81 +1,166 @@
 /* ====== General Styles ====== */
+:root {
+    --primary-color: #4a6741;
+    --primary-hover: #3a5233;
+    --secondary-color: #f8f9fa;
+    --accent-color: #e67e22;
+    --text-color: #333;
+    --light-text: #6c757d;
+    --border-color: #dee2e6;
+    --white: #ffffff;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 body {
-    background-image: url("../images/img-3.png");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
     min-height: 100vh;
+}
+
+/* Brand Side */
+.brand-side {
+    background-color: var(--primary-color);
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
-    padding-left: 50px;
-    /* Shift form to the left */
+    justify-content: center;
+    padding: 2rem;
 }
 
-/* Form Container */
-.form-container {
-    max-width: 400px;
+.brand-content {
+    text-align: center;
+    max-width: 80%;
+    z-index: 2;
+}
+
+.brand-name {
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--white);
+}
+
+.welcome-text {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.brand-tagline {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+}
+
+.shopping-illustration {
+    margin-top: 2rem;
+}
+
+/* Form Side */
+.form-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.form-wrapper {
     width: 100%;
-    margin-left: 150px
+    max-width: 450px;
+    padding: 2rem;
+    background-color: var(--white);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
 }
 
-/* Headings */
-h1 {
-    color: #5B21B6;
-    font-size: 28px;
-    margin-bottom: 10px;
+/* Login Header */
+.login-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.login-header h1 {
+    color: var(--primary-color);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
 }
 
 .subtitle {
-    color: #666;
-    font-size: 16px;
-    margin-bottom: 20px;
+    color: var(--light-text);
+    font-size: 1rem;
 }
 
 /* Input Fields */
+.input-group-text {
+    background-color: var(--white);
+    border-right: none;
+    color: var(--light-text);
+}
+
 .form-control {
-    padding: 12px;
-    border: 1px solid #E5E7EB;
-    border-radius: 8px;
-}
-/* Flexbox for alignment */
-.account-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+    border-left: none;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
 }
 
-/* Left side text */
-.already-account {
-    font-size: 14px;
-    color: #333;
+.form-control:focus {
+    box-shadow: none;
+    border-color: var(--border-color);
 }
 
-/* Right side link */
+/* Forgot Password */
 .forgot-password {
-    color: #5B21B6;
+    color: var(--primary-color);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.3s;
 }
 
+.forgot-password:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Divider */
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.divider span {
+    padding: 0 1rem;
+    color: var(--light-text);
+    font-size: 0.9rem;
+}
 
 /* Submit Button */
 .btn-login {
-    width: 100%;
-    padding: 12px;
-    background-color: #5B21B6;
+    padding: 0.75rem;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 500;
     text-align: center;
     transition: background-color 0.3s;
 }
 
 .btn-login:hover {
-    background-color: #4C1D95;
-    color: white;
+    background-color: var(--primary-hover);
 }
 
 /* Google Sign-In Button */
@@ -83,22 +168,20 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #fff;
-    color: #757575;
-    border: 1px solid #ddd;
+    background-color: var(--white);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 1rem;
     font-weight: 500;
-    padding: 12px;
+    padding: 0.75rem;
     text-decoration: none;
-    transition: background-color 0.3s, box-shadow 0.3s;
+    transition: background-color 0.3s;
     cursor: pointer;
-    width: 100%;
 }
 
 .btn-google:hover {
-    background-color: #cfcccc;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background-color: var(--secondary-color);
 }
 
 .btn-google img {
@@ -107,44 +190,75 @@ h1 {
     height: 18px;
 }
 
-/* Button Group */
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+/* Register Link */
+.register-link {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s;
 }
 
-/* Illustration */
-.illustration-container {
-    position: absolute;
-    right: 50px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-.illustration-container img {
-    width: 400px;
-    max-width: 100%;
+.register-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
 }
 
 /* Responsive Adjustments */
-@media (max-width: 768px) {
-    body {
-        padding-left: 20px;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+@media (max-width: 992px) {
+    .form-wrapper {
+        max-width: 100%;
+        box-shadow: none;
+        padding: 1rem;
     }
-
-    .illustration-container {
-        position: static;
-        transform: none;
-        margin-top: 20px;
+    
+    .form-side {
+        padding: 1.5rem;
+    }
+    
+    .brand-name {
+        color: var(--primary-color);
     }
 }
 
-@media (max-width: 480px) {
-    body {
-        padding: 10px;
+@media (max-width: 576px) {
+    .form-wrapper {
+        padding: 0;
     }
+    
+    .login-header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .form-side {
+        padding: 1rem;
+    }
+}
+
+
+/* OTP Specific Styles */
+.otp-input-container {
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.verification-illustration img {
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.resend-text {
+    font-size: 0.9rem;
+    color: var(--light-text);
+}
+
+.resend-link {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.resend-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
 }
