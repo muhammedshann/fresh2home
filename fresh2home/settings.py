@@ -155,7 +155,7 @@ RAZORPAY_KEY_SECRET = '5BjQf1ItYKlVfwzHHCRe6uQQ'
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 
 # Add site ID for allauth
-SITE_ID = 1
+SITE_ID = 2
 
 # Authentication settings
 ACCOUNT_EMAIL_REQUIRED = True
