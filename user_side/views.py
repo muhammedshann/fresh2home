@@ -344,6 +344,10 @@ def remove_from_wishlist(request, product_id):
 @login_required
 def cart_view(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
+    wallet, created = Wallet.objects.get_or_create(
+        user=request.user,
+        defaults={'balance': 0.00}  # Ensure default balance
+    )
     
     cart_items = CartItem.objects.select_related('product', 'variant').filter(cart=cart)
     
@@ -987,7 +991,10 @@ def checkout(request):
         cart = Cart.objects.get(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
         addresses = Address.objects.filter(user=request.user)
-        wallet, created = Wallet.objects.get_or_create(user=request.user)
+        wallet, created = Wallet.objects.get_or_create(
+            user=request.user,
+            defaults={'balance': 0.00}  # Ensure default balance
+        )
 
 
         if not cart_items.exists():
