@@ -379,11 +379,6 @@ class Wallet(models.Model):
     class Meta:
         db_table = 'wallets'
 
-# Signal to create a wallet when a user is created
-@receiver(post_save, sender=User)
-def create_wallet(sender, instance, created, **kwargs):
-    if created:
-        Wallet.objects.create(user=instance)
 
 class WalletTransaction(models.Model):
     TRANSACTION_TYPES = [
