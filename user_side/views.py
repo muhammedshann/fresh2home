@@ -186,6 +186,7 @@ def homepage(request):
     products = Products.objects.filter(discount__gt=0).prefetch_related('images')
     category = Category.objects.all()
     banners = Banner.objects.all()
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
     context = {
         'products': products,
         'category': category,
