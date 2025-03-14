@@ -39,7 +39,7 @@
             </div>
         </div>
 
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
+        {% comment %} <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
             {% for product in products %}
             {% if product.available_quantity > 0 %}
             <div class="col">
@@ -66,7 +66,52 @@
             </div>
             {% endif %}
             {% endfor %}
+        </div> {% endcomment %}
+    </div>
+</section>
+<section id="daily-offers" class="daily-offers py-5">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
+        {% for product in products %}
+        {% if product.available_quantity > 0 %}
+        <div class="col">
+            <div class="card h-100 product-card">
+                <a href="{% url 'product_detail' product.id %}" class="text-decoration-none">
+                    {% if product.images.all %}
+                    <img src="{{ product.images.first.image_url.url }}" class="card-img-top" alt="{{ product.name }}">
+                    {% endif %}
+                </a>
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-dark">{{ product.name }}</h5>
+                    <p class="card-text text-muted flex-grow-1">{{ product.description|truncatechars:50 }}</p>
+
+                    <!-- Price & Button Section -->
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+                        <div class="d-flex flex-column">
+                            {% if product.discount and product.discount > 0 %}
+                                <small class="text-danger" style="font-size: 0.85rem; margin-bottom: -2px;">
+                                    <del>₹{{ product.price|floatformat:2 }}</del>
+                                </small>
+                                <span class="fw-bold text-success" style="font-size: 1.2rem;">
+                                    ₹{{ product.discounted_price|floatformat:2 }}
+                                </span>
+                            {% else %}
+                                <span class="price fw-bold" style="font-size: 1.2rem;">
+                                    ₹{{ product.price|floatformat:2 }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <form action="{% url 'add_to_cart' product.id %}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="variant_id" value="{{ product.variants.first.id }}">
+                            <button type="submit" class="btn btn-outline-primary btn-sm add-to-cart">Add to Cart</button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
         </div>
+        {% endif %}
+        {% endfor %}
     </div>
 </section>
 {% endblock %}
