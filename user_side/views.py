@@ -186,7 +186,6 @@ def homepage(request):
     products = Products.objects.filter(discount__gt=0).prefetch_related('images')
     category = Category.objects.all()
     banners = Banner.objects.all()
-    wallet, created = Wallet.objects.get_or_create(user=request.user)
     context = {
         'products': products,
         'category': category,
@@ -988,7 +987,10 @@ def checkout(request):
         cart = Cart.objects.get(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
         addresses = Address.objects.filter(user=request.user)
-        wallet = Wallet.objects.get(user=request.user)
+        wallet, created = Wallet.objects.get_or_create(
+            user=request.user,
+            defaults={'balance': Decimal('0.00')}
+        )
 
         if not cart_items.exists():
             messages.error(request, 'Your cart is empty')
