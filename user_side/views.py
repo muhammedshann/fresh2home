@@ -993,8 +993,12 @@ def checkout(request):
         addresses = Address.objects.filter(user=request.user)
         wallet, created = Wallet.objects.get_or_create(
             user=request.user,
-            defaults={'balance': 0.00}  # Ensure default balance
+            defaults={'balance': Decimal('0.00')}
         )
+
+        if not wallet:
+            return JsonResponse({'error': 'Wallet creation failed'}, status=400)
+
 
 
         if not cart_items.exists():
