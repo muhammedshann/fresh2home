@@ -9,6 +9,8 @@ from datetime import timedelta
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 import uuid
+from django.db.models.signals import post_save
+
 
 class User(AbstractUser):
     first_name = None
@@ -370,12 +372,18 @@ class Transaction(models.Model):
 
 class Wallet(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    balance = models.DecimalField(max_digits=10, decimal_places=2)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'wallets'
+
+# Signal to create a wallet when a user is created
+@receiver(post_save, sender=User)
+def create_wallet(sender, instance, created, **kwargs):
+    if created:
+        Wallet.objects.create(user=instance)
 
 class WalletTransaction(models.Model):
     TRANSACTION_TYPES = [
