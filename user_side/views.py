@@ -982,35 +982,35 @@ def checkout(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
+    else:
+        try:
+            cart = Cart.objects.get(user=request.user)
+            cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
+            addresses = Address.objects.filter(user=request.user)
+            wallet, created = Wallet.objects.get_or_create(user=request.user,)
 
-    try:
-        cart = Cart.objects.get(user=request.user)
-        cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
-        addresses = Address.objects.filter(user=request.user)
-        wallet, created = Wallet.objects.get_or_create(user=request.user,)
+            if not cart_items.exists():
+                messages.error(request, 'Your cart is empty')
+                return redirect('cart_view')
 
-        if not cart_items.exists():
+            
+            subtotal = sum(item.price_at_time * item.quantity for item in cart_items)
+            shipping_charge = 0 if subtotal > 499 else 50
+            total_amount = subtotal + shipping_charge
+
+            context = {
+                'addresses': addresses,
+                'cart_items': cart_items,
+                'subtotal': subtotal,
+                'shipping_charge': shipping_charge,
+                'total_amount': total_amount,
+                'razorpay_key': settings.RAZORPAY_KEY_ID,
+                'wallet_balance': wallet,
+            }
+            return render(request, 'checkout.html', context)
+        except Cart.DoesNotExist:
             messages.error(request, 'Your cart is empty')
             return redirect('cart_view')
-
-        
-        subtotal = sum(item.price_at_time * item.quantity for item in cart_items)
-        shipping_charge = 0 if subtotal > 499 else 50
-        total_amount = subtotal + shipping_charge
-
-        context = {
-            'addresses': addresses,
-            'cart_items': cart_items,
-            'subtotal': subtotal,
-            'shipping_charge': shipping_charge,
-            'total_amount': total_amount,
-            'razorpay_key': settings.RAZORPAY_KEY_ID,
-            'wallet_balance': wallet,
-        }
-        return render(request, 'checkout.html', context)
-    except Cart.DoesNotExist:
-        messages.error(request, 'Your cart is empty')
-        return redirect('cart_view')
 
 
 def create_order(user, address_id, total, shipping_charge, cart_items, coupon, discount=None, payment=None, net_amount=0,status='PENDING'):
