@@ -988,16 +988,17 @@ def checkout(request):
 
 
     try:
-        cart = Cart.objects.get(user=request.user)
+        user = request.user  # Assuming user is authenticated
+        cart = Cart.objects.get(user=user)
         cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
-        addresses = Address.objects.filter(user=request.user)
-        wallet, created = Wallet.objects.get_or_create(
-            user=request.user,
-            defaults={'balance': Decimal('0.00')}
-        )
-
+        addresses = Address.objects.filter(user=user)
+    
+        # Check if a wallet exists
+        wallet = Wallet.objects.filter(user=user).first()  # Use .first() to avoid exceptions
+        
         if not wallet:
-            return JsonResponse({'error': 'Wallet creation failed'}, status=400)
+            # Create a wallet for the user if it doesn't exist
+            wallet = Wallet.objects.create(user=user, balance=0)
 
 
 
